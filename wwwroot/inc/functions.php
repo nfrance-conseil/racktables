@@ -6331,6 +6331,9 @@ function formatEntityName ($entity)
 		case 'ipvs':
 		case 'ipv4rspool':
 		case 'file':
+			// stored as is, unlike the other names
+			$ret = htmlspecialchars ((string) $entity['name'], ENT_QUOTES, 'UTF-8');
+			break;
 		case 'rack':
 		case 'row':
 		case 'location':

@@ -142,7 +142,7 @@ function render8021QOrderForm ($some_id)
 		if ($pageno != 'vlandomain')
 			echo '<td>' . mkA (stringForTD ($vdomlist[$item['vdom_id']], 64), 'vlandomain', $item['vdom_id']) . '</td>';
 		if ($pageno != 'vst')
-			echo '<td>' . mkA ($vstlist[$item['vst_id']], 'vst', $item['vst_id']) . '</td>';
+			echo '<td>' . mkA (stringForTD ($vstlist[$item['vst_id']], 64), 'vst', $item['vst_id']) . '</td>';
 		echo "<td>{$cutblock}</td></tr>";
 	}
 	if
@@ -307,7 +307,7 @@ function renderVLANDomain ($vdom_id)
 			echo "<tr class=row_{$order}><td>";
 			renderCell (spotEntity ('object', $switchinfo['object_id']));
 			echo '</td><td class=tdleft>';
-			echo $vstlist[$switchinfo['template_id']];
+			echo stringForLabel ($vstlist[$switchinfo['template_id']], 0);
 			echo '</td><td>';
 			$qcode = detectVLANSwitchQueue (getVLANSwitchInfo ($switchinfo['object_id']));
 			printImageHREF ("DQUEUE {$qcode}", $dqtitle[$qcode]);
@@ -817,7 +817,7 @@ function renderVLANInfo ($vlan_ck)
 			$counterpart_vlan = getVlanRow ($counterpart_ck);
 			$counterpart_link = mkA
 			(
-				$domain_list[$counterpart_vlan['domain_id']] . ': ' . $counterpart_vlan['vlan_descr'],
+				stringForLabel ($domain_list[$counterpart_vlan['domain_id']] . ': ' . $counterpart_vlan['vlan_descr'], 0),
 				'vlan',
 				$counterpart_ck
 			);
@@ -838,7 +838,7 @@ function renderVLANInfo ($vlan_ck)
 	if ($group_counterparts)
 	{
 		$group_id = $vlan['domain_group_id'] ? $vlan['domain_group_id'] : $vlan['domain_id'];
-		$summary[$domain_list[$group_id] . ' counterparts'] = implode ('<br>', $group_counterparts);
+		$summary[stringForLabel ($domain_list[$group_id], 0) . ' counterparts'] = implode ('<br>', $group_counterparts);
 	}
 	if ($counterparts)
 		$summary['Counterparts'] = implode ('<br>', $counterparts);
@@ -1473,7 +1473,7 @@ function renderVSTRules ($rules, $title = NULL)
 			echo "<td nowrap><tt>{$item['port_pcre']}</tt></td>";
 			echo '<td nowrap>' . $port_role_options[$item['port_role']] . '</td>';
 			echo "<td>{$item['wrt_vlans']}</td>";
-			echo "<td>{$item['description']}</td>";
+			echo '<td>' . stringForTD ($item['description'], 0) . '</td>';
 			echo '</tr>';
 			$order = $nextorder[$order];
 		}

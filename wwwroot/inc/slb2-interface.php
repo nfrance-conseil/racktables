@@ -38,12 +38,12 @@ function renderVS ($vsid)
 
 	echo '<table border=0 class=objectview cellspacing=0 cellpadding=0>';
 	if ($vsinfo['name'] != '')
-		echo "<tr><td colspan=2 align=center><h1>{$vsinfo['name']}</h1></td></tr>\n";
+		echo '<tr><td colspan=2 align=center><h1>' . stringForLabel ($vsinfo['name'], 0) . "</h1></td></tr>\n";
 	echo '<tr>';
 
 	echo '<td class=pcleft>';
 	$summary = array();
-	$summary['Name'] = $vsinfo['name'] . getPopupSLBConfig ($vsinfo);
+	$summary['Name'] = stringForLabel ($vsinfo['name'], 0) . getPopupSLBConfig ($vsinfo);
 	$summary['tags'] = '';
 
 	$ips = '<ul class="slb-checks">';
@@ -434,11 +434,22 @@ function renderSLBTriplets2 ($cell, $editable = FALSE, $hl_ip = NULL)
 
 function renderSLBFormAJAX()
 {
-	global $pageno, $tabno;
+	global $pageno, $tabno, $ophandler;
 	parse_str (assertStringArg ('form'), $orig_request);
 	parse_str (ltrim (assertStringArg ('action'), '?'), $action);
+	// Accept only an existing operation and check the permission for it.
+	foreach (array ('page', 'tab', 'op') as $key)
+		if (! isset ($action[$key]) || ! is_string ($action[$key]))
+			throw new InvalidRequestArgException ('action', '', "'{$key}' is missing");
+	if (! isset ($ophandler[$action['page']][$action['tab']][$action['op']]))
+		throw new InvalidRequestArgException ('action', '', 'unknown operation');
 	$pageno = $action['page'];
 	$tabno = $action['tab'];
+	$argname_by_realm = array ('object' => 'object_id', 'ipvs' => 'vs_id', 'ipv4rspool' => 'rspool_id');
+	if (! isset ($argname_by_realm[$pageno]) || ! isset ($orig_request[$argname_by_realm[$pageno]]))
+		throw new InvalidRequestArgException ('action', '', 'unexpected page');
+	fixContext (spotEntity ($pageno, $orig_request[$argname_by_realm[$pageno]]));
+	assertPermission ($pageno, $tabno, $action['op']);
 	printOpFormIntro ($action['op'], $orig_request);
 
 	$realm_list = array_diff (array ('ipvs', 'object', 'ipv4rspool'), array ($pageno));
@@ -489,6 +500,8 @@ function renderSLBFormAJAX()
 
 function getTripletConfigAJAX()
 {
+	fixContext (spotEntity ('ipvs', genericAssertion ('vs_id', 'natural')));
+	assertPermission ('ipvs', 'default');
 	$tr_list = fetchTripletRows
 	(
 		array (
@@ -572,12 +585,12 @@ function getPopupSLBConfig ($row)
 	if ($do_vs)
 	{
 		$ret .= '<h1>VS config:</h1>';
-		$ret .= $row['vsconfig'];
+		$ret .= stringForTextarea ($row['vsconfig']);
 	}
 	if ($do_rs)
 	{
 		$ret .= '<h1>RS config:</h1>';
-		$ret .= $row['rsconfig'];
+		$ret .= stringForTextarea ($row['rsconfig']);
 	}
 	$ret .= '</div>';
 

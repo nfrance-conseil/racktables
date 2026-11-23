@@ -144,7 +144,7 @@ function onFormSubmit () {
 		data: data,
 		success: function(data, textStatus, XMLHttpRequest) {
 			if (data == 'OK')
-				span.html(text);
+				span.text(text);
 			else
 				alert ('Error updating port: ' + data);
 		},

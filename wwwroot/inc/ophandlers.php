@@ -770,15 +770,19 @@ function editPortForObject ()
 	setFuncMessages (__FUNCTION__, array ('OK' => 6));
 	global $sic;
 	$port_id = genericAssertion ('port_id', 'natural');
+	// Like addPortForObject(), store the HTML-escaped name and label (the views
+	// output them as is).
+	genericAssertion ('name', 'string');
+	genericAssertion ('label', 'string0');
 	try
 	{
 		commitUpdatePort
 		(
 			getBypassValue(),
 			$port_id,
-			genericAssertion ('name', 'string'),
+			$_REQUEST['name'],
 			assertStringArg ('port_type_id'),
-			genericAssertion ('label', 'string0'),
+			$_REQUEST['label'],
 			genericAssertion ('l2address', 'l2address0'),
 			assertStringArg ('reservation_comment', TRUE)
 		);
@@ -923,11 +927,13 @@ function addIPAllocation ()
 		//TODO ask to take reserved IP or not !
 	}
 
+	// Like updIPAllocation(), store the HTML-escaped form (the views output it as is).
+	assertStringArg ('bond_name', TRUE);
 	bindIPToObject
 	(
 		$ip_bin,
 		genericAssertion ('object_id', 'natural'),
-		genericAssertion ('bond_name', 'string0'),
+		$_REQUEST['bond_name'],
 		$alloc_type
 	);
 
@@ -1074,12 +1080,16 @@ function createUser ()
 function updateUser ()
 {
 	setFuncMessages (__FUNCTION__, array ('OK' => 6));
-	$username = genericAssertion ('username', 'string');
+	// Like createUser(), store the HTML-escaped form: authenticate() compares
+	// the user name with the escaped value of PHP_AUTH_USER.
+	assertStringArg ('username');
+	assertStringArg ('realname', TRUE);
+	$username = $_REQUEST['username'];
 	commitUpdateUserAccount
 	(
 		genericAssertion ('user_id', 'natural'),
 		$username,
-		genericAssertion ('realname', 'string0'),
+		$_REQUEST['realname'],
 		sha1 (genericAssertion ('password', 'string0'))
 	);
 	showFuncMessage (__FUNCTION__, 'OK', array ($username));
@@ -2015,15 +2025,15 @@ function addLoadBalancer ()
 
 function addRSPool ()
 {
-	assertStringArg ('name');
+	$name = genericAssertion ('name', 'string');
 	$pool_id = commitCreateRSPool
 	(
-		$_REQUEST['name'],
+		$name,
 		genericAssertion ('vsconfig', 'string0'),
 		genericAssertion ('rsconfig', 'string0'),
 		isset ($_REQUEST['taglist']) ? $_REQUEST['taglist'] : array()
 	);
-	showSuccess ('RS pool ' . mkA ($_REQUEST['name'], 'ipv4rspool', $pool_id) . ' created successfully');
+	showSuccess ('RS pool ' . mkA (stringForLabel ($name, 0), 'ipv4rspool', $pool_id) . ' created successfully');
 }
 
 function deleteRSPool ()

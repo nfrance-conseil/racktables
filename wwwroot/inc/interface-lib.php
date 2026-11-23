@@ -405,14 +405,14 @@ function getNiftySelect ($groupList, $select_attrs, $selected_id = NULL)
 	$ret .= ">\n";
 	foreach ($groupList as $groupname => $groupdata)
 	{
-		$ret .= "<optgroup label='{$groupname}'>\n";
+		$ret .= "<optgroup label='" . htmlspecialchars ($groupname, ENT_QUOTES, 'UTF-8') . "'>\n";
 		foreach ($groupdata as $dict_key => $dict_value)
 		{
 			if (is_array ($selected_id))
 				$is_selected = in_array ($dict_key, $selected_id);
 			else
 				$is_selected = $dict_key == $selected_id;
-			$ret .= "<option value='{$dict_key}'" . ($is_selected ? ' selected' : '') . ">{$dict_value}</option>\n";
+			$ret .= "<option value='" . htmlspecialchars ($dict_key, ENT_QUOTES, 'UTF-8') . "'" . ($is_selected ? ' selected' : '') . '>' . stringForOption ($dict_value) . "</option>\n";
 		}
 		$ret .= "</optgroup>\n";
 	}
@@ -431,8 +431,8 @@ function getOptionTree ($tree_name, $tree_options, $tree_config = array())
 	addJSInternal ('js/jquery.optionTree.js');
 	addJSText ("
 $(function() {
-	var option_tree = " . json_encode ($tree_options) . ";
-	var options = " . json_encode ($tree_config + $default_config) . ";
+	var option_tree = " . json_encode ($tree_options, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ";
+	var options = " . json_encode ($tree_config + $default_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ";
 	$('input[name={$tree_name}]').optionTree(option_tree, options);
 });"
 	); // addJSText()
@@ -1133,7 +1133,8 @@ function printOpFormIntro ($opname, $extra = array(), $upload = FALSE)
 {
 	global $pageno, $tabno, $page;
 
-	echo "<form method=post id={$opname} name={$opname} action='?module=redirect&page={$pageno}&tab={$tabno}&op={$opname}'";
+	$h_opname = htmlspecialchars ($opname, ENT_QUOTES, 'UTF-8');
+	echo "<form method=post id={$h_opname} name={$h_opname} action='" . htmlspecialchars ("?module=redirect&page={$pageno}&tab={$tabno}&op={$opname}", ENT_QUOTES, 'UTF-8') . "'";
 	if ($upload)
 		echo " enctype='multipart/form-data'";
 	echo ">";
@@ -1186,11 +1187,21 @@ function niftyString ($string, $maxlen = 30, $usetags = TRUE)
 		($usetags ? '</span>' : '');
 }
 
+// "<A href='%s'>": an escaped URL, or '#' unless the URL is relative or uses
+// a harmless scheme (no javascript:, data: and the like).
+function safeHref ($url)
+{
+	$url = trim ((string) $url);
+	if (preg_match ('/^[a-z][a-z0-9+.-]*:/i', $url) && ! preg_match ('#^(https?|ftp|mailto|ssh|telnet|rdp|vnc):#i', $url))
+		return '#';
+	return htmlspecialchars ($url, ENT_QUOTES, 'UTF-8');
+}
+
 // "Some text, %s, some more text."
 function stringForLabel ($string, $maxlen = 30)
 {
 	// A tab counts for a space.
-	$string = preg_replace ("/\t/", ' ', $string);
+	$string = preg_replace ("/\t/", ' ', (string) $string);
 	$full = htmlspecialchars ($string, ENT_QUOTES, 'UTF-8');
 	if ($maxlen == 0 || mb_strlen ($string) <= $maxlen)
 		return $full;
@@ -1225,7 +1236,7 @@ function stringForTextarea ($string)
 // <OPTION>%s</OPTION>
 function stringForOption ($string, $maxlen = 80)
 {
-	$string = preg_replace ("/\t/", ' ', $string);
+	$string = preg_replace ("/\t/", ' ', (string) $string);
 	if ($maxlen == 0 || mb_strlen ($string) <= $maxlen)
 		return htmlspecialchars ($string, ENT_QUOTES, 'UTF-8');
 	$string = mb_substr ($string, 0, $maxlen - 1);
@@ -1267,7 +1278,7 @@ function printTagsPickerUl ($input_name, $preselect = NULL)
 	foreach ($preselect as $value)
 		$preselect_hidden .= "<input type=hidden name=" . $input_name . "[] value=" . $value['id'] . ">";
 	echo $preselect_hidden; # print preselected tags id that used in case javascript problems
-	echo "<ul data-tagit='yes' data-tagit-valuename='" . $input_name . "' data-tagit-preselect='" . json_encode($preselect) . "' class='tagit-vertical'></ul>";
+	echo "<ul data-tagit='yes' data-tagit-valuename='" . $input_name . "' data-tagit-preselect='" . json_encode ($preselect, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "' class='tagit-vertical'></ul>";
 }
 
 function enableTagsPicker ()
@@ -1288,7 +1299,7 @@ function enableTagsPicker ()
 			if ($taginfo['color'] != NULL)
 				$taglist_filtered[$key]['tagclass'] = getTagClass ($taginfo);
 		}
-		addJSText ('var taglist = ' . json_encode ($taglist_filtered) . ';');
+		addJSText ('var taglist = ' . json_encode ($taglist_filtered, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';');
 		$taglist_inserted = TRUE;
 	}
 }

@@ -232,7 +232,9 @@ function updatePortRsvAJAX()
 
 function updateIPNameAJAX()
 {
-	$text = genericAssertion ('text', 'string0');
+	// The IP address name and comment are stored HTML-escaped, as the form handlers do.
+	genericAssertion ('text', 'string0');
+	$text = $_REQUEST['text'];
 	$ip_bin = assertIPArg ('id');
 	$addr = getIPAddress ($ip_bin);
 	if (! empty ($addr['allocs']) && empty ($addr['name']))
@@ -249,7 +251,9 @@ function updateIPNameAJAX()
 
 function updateIPCommentAJAX()
 {
-	$text = genericAssertion ('text', 'string0');
+	// The IP address name and comment are stored HTML-escaped, as the form handlers do.
+	genericAssertion ('text', 'string0');
+	$text = $_REQUEST['text'];
 	$ip_bin = assertIPArg ('id');
 	$addr = getIPAddress ($ip_bin);
 	$net = spotNetworkByIP ($ip_bin);
@@ -291,7 +295,15 @@ function getNetUsageAJAX()
 	$ip_bin = ip_parse ($ip);
 	$net = spotNetworkByIP ($ip_bin, $mask + 1);
 	if (! isset ($net) || $net['mask'] != $mask)
+	{
 		$net = constructIPRange ($ip_bin, $mask);
+		assertPermission (strlen ($ip_bin) == 16 ? 'ipv6space' : 'ipv4space', 'default');
+	}
+	else
+	{
+		fixContext ($net);
+		assertPermission ($net['realm'], 'default');
+	}
 	loadIPAddrList ($net);
 	echo getRenderedIPNetCapacity ($net);
 }
@@ -303,6 +315,15 @@ function getAutocompleteListAJAX()
 
 	if (! $term)
 		return;
+	if ($realm == 'bond_name')
+	{
+		fixContext (spotEntity ('object', genericAssertion ('object_id', 'natural')));
+		assertPermission ('object', 'default');
+	}
+	else
+		assertPermission ('depot', 'default');
+	// The term is a substring, not a pattern.
+	$term = addcslashes ($term, '%_\\');
 
 	switch ($realm)
 	{

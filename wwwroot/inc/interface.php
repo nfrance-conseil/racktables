@@ -1392,7 +1392,7 @@ function renderObjectPortRow ($port, $is_highlighted)
 		$editable = permitted ('object', 'ports', 'editPort')
 			? 'editable'
 			: '';
-		echo "<td class=tdleft><span class='rsvtext $editable id-{$port['id']} op-upd-reservation-cable'>{$port['cableid']}</span></td>";
+		echo "<td class=tdleft><span class='rsvtext $editable id-{$port['id']} op-upd-reservation-cable'>" . stringForLabel ($port['cableid'], 0) . '</span></td>';
 	}
 	else
 		echo implode ('', formatPortReservation ($port)) . '<td></td>';
@@ -1764,7 +1764,7 @@ function renderPortsForObject ($object_id)
 				"</td>";
 			echo "<td class=tdleft> " . formatLoggedSpan ($port['last_log'], $port['remote_name'], 'underline') .
 				"<input type=hidden name=reservation_comment value=''></td>";
-			echo "<td><input type=text name=cable value='{$port['cableid']}'></td>";
+			echo "<td><input type=text name=cable value='" . stringForTextInputValue ($port['cableid'], 0) . "'></td>";
 			echo "<td class=tdcenter>";
 			echo getOpLink (array('op'=>'unlinkPort', 'port_id'=>$port['id'], ), '', 'cut', 'Unlink this port');
 			echo "</td>";
@@ -1772,7 +1772,7 @@ function renderPortsForObject ($object_id)
 		elseif ($port['reservation_comment'] != '')
 		{
 			echo "<td>" . formatLoggedSpan ($port['last_log'], 'Reserved:', 'strong underline') . "</td>";
-			echo "<td><input type=text name=reservation_comment value='{$port['reservation_comment']}'></td>";
+			echo "<td><input type=text name=reservation_comment value='" . stringForTextInputValue ($port['reservation_comment'], 0) . "'></td>";
 			echo "<td></td>";
 			echo "<td class=tdcenter>";
 			echo getOpLink (array('op'=>'useup', 'port_id'=>$port['id']), '', 'clear', 'Use up this port');
@@ -3066,13 +3066,13 @@ function renderIPv4NetworkAddresses ($range)
 		foreach ($addr['vsglist'] as $vs_id)
 		{
 			$vs = spotEntity ('ipvs', $vs_id);
-			echo $delim . mkA ($vs['name'], 'ipvs', $vs['id']) . '&rarr;';
+			echo $delim . mkA (stringForLabel ($vs['name'], 0), 'ipvs', $vs['id']) . '&rarr;';
 			$delim = '<br>';
 		}
 		foreach ($addr['rsplist'] as $rsp_id)
 		{
 			$rsp = spotEntity ('ipv4rspool', $rsp_id);
-			echo "{$delim}&rarr;" . mkA ($rsp['name'], 'ipv4rspool', $rsp['id']);
+			echo "{$delim}&rarr;" . mkA (stringForLabel ($rsp['name'], 0), 'ipv4rspool', $rsp['id']);
 			$delim = '<br>';
 		}
 		echo "</td></tr>\n";
@@ -3191,13 +3191,13 @@ function renderIPv6NetworkAddresses ($netinfo)
 		foreach ($addr['vsglist'] as $vs_id)
 		{
 			$vs = spotEntity ('ipvs', $vs_id);
-			echo $delim . mkA ($vs['name'], 'ipvs', $vs['id']) . '&rarr;';
+			echo $delim . mkA (stringForLabel ($vs['name'], 0), 'ipvs', $vs['id']) . '&rarr;';
 			$delim = '<br>';
 		}
 		foreach ($addr['rsplist'] as $rsp_id)
 		{
 			$rsp = spotEntity ('ipv4rspool', $rsp_id);
-			echo "{$delim}&rarr;" . mkA ($rsp['name'], 'ipv4rspool', $rsp['id']);
+			echo "{$delim}&rarr;" . mkA (stringForLabel ($rsp['name'], 0), 'ipv4rspool', $rsp['id']);
 			$delim = '<br>';
 		}
 		echo "</td></tr>\n";
@@ -4276,7 +4276,7 @@ function renderLivePTR ($id)
 	$range = spotEntity ('ipv4net', $id);
 	loadIPAddrList ($range);
 	$can_import = permitted (NULL, NULL, 'importPTRData');
-	echo "<center><h1>{$range['ip']}/{$range['mask']}</h1><h2>{$range['name']}</h2></center>\n";
+	echo "<center><h1>{$range['ip']}/{$range['mask']}</h1><h2>" . stringForLabel ($range['name'], 0) . "</h2></center>\n";
 
 	echo "<table class=objview border=0 width='100%'><tr><td class=pcleft>";
 	startPortlet ('current records');
@@ -4919,7 +4919,7 @@ function renderFilesPortlet ($entity_type = NULL, $entity_id = 0)
 			// getFilesOfEntity() returns a standard cell list.
 			$file = spotEntity ('file', $file['id']);
 			renderCell ($file);
-			echo "</td><td class=tdleft>{$file['comment']}</td></tr>";
+			echo '</td><td class=tdleft>' . stringForLabel ($file['comment'], 0) . '</td></tr>';
 			if (isolatedPermission ('file', 'download', $file) && '' != ($pcode = getFilePreviewCode ($file)))
 				echo "<tr><td colspan=2>{$pcode}</td></tr>\n";
 		}
@@ -4976,7 +4976,7 @@ function renderFilesForEntity ($entity_id)
 		{
 			echo "<tr valign=top><td class=tdleft>";
 			renderCell (spotEntity ('file', $file_id));
-			echo "</td><td class=tdleft>{$file['comment']}</td><td class=tdcenter>";
+			echo '</td><td class=tdleft>' . stringForLabel ($file['comment'], 0) . '</td><td class=tdcenter>';
 			echo getOpLink (array('op'=>'unlinkFile', 'link_id'=>$file['link_id']), '', 'CUT', 'Unlink file');
 			echo "</td></tr>\n";
 		}
@@ -5459,7 +5459,7 @@ function dynamic_title_decoder_throwing ($path_position)
 		$chapter_name = isset ($chapters[$chapter_no]) ? $chapters[$chapter_no]['name'] : 'N/A';
 		return array
 		(
-			'name' => "Chapter '{$chapter_name}'",
+			'name' => "Chapter '" . stringForOption ($chapter_name, 0) . "'",
 			'params' => array ('chapter_no' => $chapter_no)
 		);
 	case 'user':
@@ -5473,7 +5473,7 @@ function dynamic_title_decoder_throwing ($path_position)
 		$pool_info = spotEntity ('ipv4rspool', genericAssertion ('pool_id', 'natural'));
 		return array
 		(
-			'name' => $pool_info['name'] == '' ? 'ANONYMOUS' : $pool_info['name'],
+			'name' => $pool_info['name'] == '' ? 'ANONYMOUS' : stringForOption ($pool_info['name'], 0),
 			'params' => array ('pool_id' => $pool_info['id'])
 		);
 	case 'ipv4vs':
@@ -5487,7 +5487,7 @@ function dynamic_title_decoder_throwing ($path_position)
 		$vs_info = spotEntity ('ipvs', genericAssertion ('vs_id', 'natural'));
 		return array
 		(
-			'name' => $vs_info['name'],
+			'name' => stringForOption ($vs_info['name'], 0),
 			'params' => array ('vs_id' => $vs_info['id'])
 		);
 	case 'object':
@@ -6010,6 +6010,7 @@ function formatAttributeValue ($record, $objtype_id)
 			datetimestrFromTimestamp ($record['value'])
 		);
 	case 'string':
+		$a_value = stringForLabel ($record['a_value'], 0);
 		if ($record['id'] == 3) // FQDN attribute
 			foreach (getMgmtProtosConfig() as $proto => $filter)
 				try
@@ -6017,7 +6018,7 @@ function formatAttributeValue ($record, $objtype_id)
 					if (considerGivenConstraint (NULL, $filter))
 					{
 						$blank = (preg_match ('/^https?$/', $proto) ? 'target=_blank' : '');
-						return "<a $blank title='Open $proto session' class='mgmt-link' href='" . $proto . '://' . $record['a_value'] . "'>{$record['a_value']}</a>";
+						return "<a $blank title='Open $proto session' class='mgmt-link' href='" . htmlspecialchars ($proto . '://' . $record['a_value'], ENT_QUOTES, 'UTF-8') . "'>{$a_value}</a>";
 					}
 				}
 				catch (RackTablesError $e)
@@ -6030,8 +6031,8 @@ function formatAttributeValue ($record, $objtype_id)
 					continue;
 				}
 		return array_key_exists ('href', $record) ?
-			"<a href='{$record['href']}'>{$record['a_value']}</a>" :
-			$record['a_value'];
+			"<a href='" . safeHref ($record['href']) . "'>{$a_value}</a>" :
+			$a_value;
 	case 'dict':
 		$map = array
 		(
@@ -6045,8 +6046,9 @@ function formatAttributeValue ($record, $objtype_id)
 			1561 => NULL,
 			1562 => NULL,
 		);
+		$a_value = stringForLabel ($record['a_value'], 0);
 		if (NULL === $filter_pageno = array_fetch ($map, $objtype_id, 'depot'))
-			$result = $record['a_value'];
+			$result = $a_value;
 		else
 		{
 			$filter_args = array
@@ -6057,10 +6059,10 @@ function formatAttributeValue ($record, $objtype_id)
 				'cfe' => '{$attr_' . $record['id'] . '_' . $record['key'] . '}',
 			);
 			$filter_url = makeHref ($filter_args);
-			$result = "<a href='{$filter_url}'>{$record['a_value']}</a>";
+			$result = "<a href='" . htmlspecialchars ($filter_url, ENT_QUOTES, 'UTF-8') . "'>{$a_value}</a>";
 		}
 		if (array_key_exists ('href', $record))
-			$result .= "&nbsp;<a class='img-link' href='{$record['href']}'>" . getImageHREF ('html', 'vendor\'s info page') . "</a>";
+			$result .= "&nbsp;<a class='img-link' href='" . safeHref ($record['href']) . "'>" . getImageHREF ('html', 'vendor\'s info page') . "</a>";
 		return $result;
 	default:
 		throw new InvalidArgException ('record[type]', $record['type']);
@@ -6327,7 +6329,7 @@ function formatPortReservation ($port)
 		? 'editable'
 		: '';
 	$ret[] = '<td class=tdleft>' .
-		formatLoggedSpan ($port['last_log'], $port['reservation_comment'], "rsvtext $editable id-{$port['id']} op-upd-reservation-port") .
+		formatLoggedSpan ($port['last_log'], stringForLabel ($port['reservation_comment'], 0), "rsvtext $editable id-{$port['id']} op-upd-reservation-port") .
 		'</td>';
 	return $ret;
 }

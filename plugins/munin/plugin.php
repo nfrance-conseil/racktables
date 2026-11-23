@@ -306,7 +306,7 @@ function renderObjectMuninGraphs ($object_id)
 		echo "<img src='index.php?module=image&img=muningraph&object_id={$object_id}&server_id={$graph['server_id']}&graph={$graph_name}' alt='{$text}' title='{$text}'></a></td>";
 		echo "<td>";
 		echo getOpLink (array ('op' => 'del', 'server_id' => $graph['server_id'], 'graph' => $graph_name), '', 'Cut', 'Unlink graph', 'need-confirmation');
-		echo "&nbsp; &nbsp;{$graph['caption']}";
+		echo '&nbsp; &nbsp;' . stringForLabel ($graph['caption'], 0);
 		echo "</td></tr>\n";
 	}
 	echo "</table>\n";

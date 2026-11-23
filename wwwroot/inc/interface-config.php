@@ -543,7 +543,7 @@ function renderEditAttributesForm ()
 			printImageHREF ('nodestroy', count ($attr['application']) . ' reference(s) in attribute map');
 		else
 			echo getOpLink (array('op'=>'del', 'attr_id'=>$attr['id']), '', 'destroy', 'Remove attribute');
-		echo "</td><td><input type=text name=attr_name value='{$attr['name']}'></td>";
+		echo "</td><td><input type=text name=attr_name value='" . stringForTextInputValue ($attr['name'], 0) . "'></td>";
 		echo "<td class=tdleft>{$attr['type']}</td><td>";
 		printImageHREF ('save', 'Save changes', TRUE);
 		echo '</td></tr>';
@@ -615,7 +615,7 @@ function renderEditAttrMapForm ()
 				echo getOpLink (array('op'=>'del', 'attr_id'=>$attr['id'], 'objtype_id'=>$app['objtype_id']), '', 'delete', 'Remove mapping');
 			echo ' ';
 			if ($attr['type'] == 'dict')
-				echo decodeObjectType ($app['objtype_id']) . " (values from '{$app['chapter_name']}')<br>";
+				echo decodeObjectType ($app['objtype_id']) . " (values from '" . stringForLabel ($app['chapter_name'], 0) . "')<br>";
 			else
 				echo decodeObjectType ($app['objtype_id']) . '<br>';
 		}
@@ -632,7 +632,7 @@ function renderDictionary ()
 {
 	echo '<ul>';
 	foreach (getChapterList() as $chapter_no => $chapter)
-		echo '<li>' . mkA ($chapter['name'], 'chapter', $chapter_no) . " ({$chapter['wordc']} records)</li>";
+		echo '<li>' . mkA (stringForLabel ($chapter['name'], 0), 'chapter', $chapter_no) . " ({$chapter['wordc']} records)</li>";
 	echo '</ul>';
 }
 
@@ -676,7 +676,7 @@ function renderChaptersEditor ()
 		else
 			echo getOpLink (array('op'=>'del', 'chapter_no'=>$chapter_id), '', 'destroy', 'Remove chapter');
 		echo '</td>';
-		echo "<td><input type=text name=chapter_name value='{$chapter['name']}'" . ($sticky ? ' disabled' : '') . "></td>";
+		echo "<td><input type=text name=chapter_name value='" . stringForTextInputValue ($chapter['name'], 0) . "'" . ($sticky ? ' disabled' : '') . "></td>";
 		echo "<td class=tdleft>{$wordcount}</td><td>";
 		if ($sticky)
 			echo '&nbsp;';
@@ -789,7 +789,7 @@ function renderChapterEditor ($tgt_chapter_no)
 		else
 			echo getOpLink (array('op'=>'del', 'dict_key'=>$key), '', 'delete', 'Delete word');
 		echo '</td>';
-		echo "<td class=tdleft><input type=text name=dict_value size=64 value='{$value}'></td><td>";
+		echo "<td class=tdleft><input type=text name=dict_value size=64 value='" . stringForTextInputValue ($value, 0) . "'></td><td>";
 		printImageHREF ('save', 'Save changes', TRUE);
 		echo "</td></tr></form>";
 	}

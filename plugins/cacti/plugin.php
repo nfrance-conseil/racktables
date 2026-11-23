@@ -298,7 +298,7 @@ function renderObjectCactiGraphs ($object_id)
 		echo "<img src='index.php?module=image&img=cactigraph&object_id={$object_id}&server_id={$graph['server_id']}&graph_id={$graph_id}' alt='{$text}' title='{$text}'></a></td><td>";
 		if(permitted ('object', 'cacti', 'del'))
 			echo getOpLink (array ('op' => 'del', 'server_id' => $graph['server_id'], 'graph_id' => $graph_id), '', 'Cut', 'Unlink graph', 'need-confirmation');
-		echo "&nbsp; &nbsp;{$graph['caption']}";
+		echo '&nbsp; &nbsp;' . stringForLabel ($graph['caption'], 0);
 		echo "</td></tr>\n";
 	}
 	echo "</table>\n";
