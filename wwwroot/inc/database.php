@@ -1672,8 +1672,16 @@ function getResidentRackIDs ($object_id)
 	return $result->fetchAll (PDO::FETCH_COLUMN);
 }
 
+// Port names are used in device CLI commands (see translateDeviceCommands()).
+function assertValidPortName ($port_name)
+{
+	if (preg_match ('/[\x00-\x1F\x7F]/', $port_name))
+		throw new InvalidArgException ('port_name', $port_name, 'control characters are not allowed');
+}
+
 function commitAddPort ($object_id, $port_name, $port_type_id, $port_label, $port_l2address)
 {
+	assertValidPortName ($port_name);
 	global $dbxlink;
 	$db_l2address = l2addressForDatabase ($port_l2address);
 	list ($iif_id, $oif_id) = parsePortIIFOIF ($port_type_id);
@@ -1727,6 +1735,7 @@ function getPortReservationComment ($port_id, $extrasql = '')
 
 function commitUpdatePort ($object_id, $port_id, $port_name, $port_type_id, $port_label, $port_l2address, $port_reservation_comment)
 {
+	assertValidPortName ($port_name);
 	global $dbxlink;
 	$db_l2address = l2addressForDatabase ($port_l2address);
 	list ($iif_id, $oif_id) = parsePortIIFOIF ($port_type_id);

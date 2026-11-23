@@ -330,6 +330,13 @@ function translateDeviceCommands ($object_id, $crq, $vlan_names = NULL)
 		throw new RTGatewayError ("undeclared function '{$funcname}'");
 	global $current_query_breed;
 	$current_query_breed = $breed; // this global is used to auto-detect breed in shortenIfName
+	// Port names, VLAN names and the like end up in CLI commands sent to the
+	// device: a line break would inject arbitrary commands.
+	foreach ($crq as $cmd)
+		if (! isset ($cmd['opcode']) || $cmd['opcode'] != 'cite') // verbatim CLI text by design
+			assertNoControlChars ($cmd);
+	if ($vlan_names !== NULL)
+		assertNoControlChars ($vlan_names);
 	try
 	{
 		$ret = $funcname ($object_id, $crq, $vlan_names);
@@ -343,6 +350,18 @@ function translateDeviceCommands ($object_id, $crq, $vlan_names = NULL)
 	return $ret;
 }
 
+function assertNoControlChars ($data)
+{
+	if (is_array ($data))
+		foreach ($data as $key => $value)
+		{
+			assertNoControlChars ($key);
+			assertNoControlChars ($value);
+		}
+	elseif (is_string ($data) && preg_match ('/[\x00-\x08\x0A-\x1F\x7F]/', $data))
+		throw new RTGatewayError ('control characters are not allowed in device commands arguments');
+}
+
 // takes settings struct (declared in queryTerminal) and CLI commands (plain text) as input by reference
 // returns an array of command-line parameters to $ref_settings[0]['protocol']
 // this function is called by callHook, so you can override/chain it
@@ -353,6 +372,10 @@ function makeGatewayParams ($object_id, /*array(&)*/$ref_settings, /*array(&)*/$
 	$settings = &$ref_settings[0];
 	$commands = &$ref_commands[0];
 
+	// The hostname comes from editable object data and is passed as a command
+	// line argument: it must not be taken for an option.
+	if (isset ($settings['hostname']) && (! preg_match ('/^[A-Za-z0-9_.:%\[\]-]+$/D', $settings['hostname']) || substr ($settings['hostname'], 0, 1) == '-'))
+		throw new RTGatewayError ("invalid hostname '{$settings['hostname']}'");
 	$prepend_credentials = FALSE;
 	switch ($settings['protocol'])
 	{
@@ -389,8 +412,8 @@ function makeGatewayParams ($object_id, /*array(&)*/$ref_settings, /*array(&)*/$
 			$params_from_settings['proto'] = 'proto';
 			$params_from_settings['prompt'] = 'prompt';
 			$params_from_settings['prompt-delay'] = 'prompt_delay';
-			$params_from_settings['username'] = 'username';
-			$params_from_settings['password'] = 'password';
+			// The credentials go to the standard input (see $prepend_credentials),
+			// not to the command line, which any local user can read.
 			$params_from_settings[] = $settings['hostname'];
 			break;
 		case 'ssh':
@@ -414,7 +437,8 @@ function makeGatewayParams ($object_id, /*array(&)*/$ref_settings, /*array(&)*/$
 			if (isset ($settings['connect_timeout']))
 				$params_from_settings[] = '-oConnectTimeout=' . $settings['connect_timeout'];
 			$params_from_settings[] = '-T';
-			$params_from_settings[] = '-oStrictHostKeyChecking=no';
+			// Trust a host key on first use, then refuse a changed key (MITM).
+			$params_from_settings[] = '-oStrictHostKeyChecking=accept-new';
 			$params_from_settings[] = '-oBatchMode=yes';
 			$params_from_settings[] = '-oCheckHostIP=no';
 			$params_from_settings[] = '-oLogLevel=ERROR';

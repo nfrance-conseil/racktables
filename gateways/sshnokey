@@ -44,6 +44,14 @@ if ($op_help) {
 }
 my $op_host = $ARGV[0];
 defined $op_host or die "ERROR: please specify remote host (-h for help)";
+# Without --username and --password, read the credentials from the first two
+# lines of the standard input, so they do not appear in the process list.
+if (! defined $op_username && ! defined $op_password) {
+	$op_username = <STDIN>;
+	$op_password = <STDIN>;
+	defined $op_password or die "ERROR: please specify the credentials (-h for help)";
+	chomp ($op_username, $op_password);
+}
 defined $op_prompt or die "ERROR: please specify prompt regexp (-h for help)";
 my $prompt_re = qr/$op_prompt/;
 
@@ -51,9 +59,9 @@ sub display_help {
     print <<END;
 OpenSSH-Hardened telnet batch client for RackTables.
 Takes commands list in standard input and gives the responses via standard output.
-Login credentials are not specially handled and should be placed as first lines of input
+Login credentials are read from the first two lines of input, unless given as options
 Usage:
-$0 {hostname} [--port={port}] [--connect-timeout={seconds}] --prompt={regexp} [--timeout={seconds}] --username={username} --password={password} --prompt-delay={prompt_delay}
+$0 {hostname} [--port={port}] [--connect-timeout={seconds}] --prompt={regexp} [--timeout={seconds}] [--username={username} --password={password}] --prompt-delay={prompt_delay}
 
 port: TCP port number to connect to
 connect-timeout: timeout for giving up connecting process, seconds
