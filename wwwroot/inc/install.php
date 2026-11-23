@@ -794,6 +794,13 @@ function get_pseudo_file ($name)
   UNIQUE KEY `ip` (`ip`,`mask`)
 ) ENGINE=InnoDB";
 
+		$query[] = "CREATE TABLE `LoginFailure` (
+  `ip` varchar(45) NOT NULL,
+  `failures` int(10) unsigned NOT NULL,
+  `last_failure` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  PRIMARY KEY (`ip`)
+) ENGINE=InnoDB";
+
 		$query[] = "CREATE TABLE `LDAPCache` (
   `presented_username` char(64) NOT NULL,
   `successful_hash` varchar(255) NOT NULL,

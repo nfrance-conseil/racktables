@@ -95,6 +95,49 @@ function isValidPasswordHash ($hash)
 	return isLegacyPasswordHash ($hash) || password_get_info ($hash)['algo'] !== NULL;
 }
 
+// HTTP basic authentication has no rate limit of its own: after too many
+// failed logins from a client address within the window, refuse further
+// attempts from it until the window has passed. The address, not the account,
+// is throttled, so that nobody can lock out a legitimate user.
+// Behind a reverse proxy, REMOTE_ADDR must be the client (mod_remoteip...).
+define ('LOGIN_THROTTLE_MAX_FAILURES', 10);
+define ('LOGIN_THROTTLE_WINDOW', 900); // seconds
+
+function isLoginThrottled()
+{
+	global $dbxlink;
+	if (isCLIMode() || ! isset ($_SERVER['REMOTE_ADDR']))
+		return FALSE;
+	try
+	{
+		$prepared = $dbxlink->prepare ('SELECT failures FROM LoginFailure WHERE ip = ? AND last_failure > NOW() - INTERVAL ? SECOND');
+		$prepared->execute (array ($_SERVER['REMOTE_ADDR'], LOGIN_THROTTLE_WINDOW));
+		return $prepared->fetchColumn() >= LOGIN_THROTTLE_MAX_FAILURES;
+	}
+	catch (PDOException $e)
+	{
+		return FALSE; // the table does not exist before the 0.22.1 upgrade
+	}
+}
+
+function recordLoginFailure()
+{
+	global $dbxlink;
+	if (isCLIMode() || ! isset ($_SERVER['REMOTE_ADDR']))
+		return;
+	try
+	{
+		$dbxlink->prepare
+		(
+			'INSERT INTO LoginFailure (ip, failures, last_failure) VALUES (?, 1, NOW()) ' .
+			'ON DUPLICATE KEY UPDATE failures = IF(last_failure > NOW() - INTERVAL ? SECOND, failures + 1, 1), last_failure = NOW()'
+		)->execute (array ($_SERVER['REMOTE_ADDR'], LOGIN_THROTTLE_WINDOW));
+	}
+	catch (PDOException $e)
+	{
+	}
+}
+
 // (re)connects to DB, stores PDO object in $dbxlink global var
 function connectDB()
 {

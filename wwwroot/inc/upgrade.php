@@ -1397,6 +1397,12 @@ INSERT INTO `Config` (varname, varvalue, vartype, emptyok, is_hidden, is_userdef
 			$query[] = "ALTER TABLE UserAccount MODIFY user_password_hash varchar(255) DEFAULT NULL";
 			$query[] = "DELETE FROM LDAPCache";
 			$query[] = "ALTER TABLE LDAPCache MODIFY successful_hash varchar(255) NOT NULL";
+			$query[] = "CREATE TABLE `LoginFailure` (
+  `ip` varchar(45) NOT NULL,
+  `failures` int(10) unsigned NOT NULL,
+  `last_failure` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  PRIMARY KEY (`ip`)
+) ENGINE=InnoDB";
 			$query[] = "UPDATE Config SET varvalue = '0.22.1' WHERE varname = 'DB_VERSION'";
 			break;
 		case 'dictionary':
@@ -1520,15 +1526,19 @@ function renderUpgraderHTML()
 		die ("Database connection failed:\n\n" . $e->getMessage());
 	}
 
+	$throttled = isLoginThrottled();
 	if
 	(
 		! isset ($_SERVER['PHP_AUTH_USER']) ||
 		$_SERVER['PHP_AUTH_USER'] == '' ||
 		! isset ($_SERVER['PHP_AUTH_PW']) ||
 		$_SERVER['PHP_AUTH_PW'] == '' ||
+		$throttled ||
 		!authenticate_admin ($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])
 	)
 	{
+		if (! $throttled && isset ($_SERVER['PHP_AUTH_PW']) && $_SERVER['PHP_AUTH_PW'] != '')
+			recordLoginFailure();
 		header ('WWW-Authenticate: Basic realm="RackTables upgrade"');
 		header ('HTTP/1.0 401 Unauthorized');
 		echo <<<'ENDOFTEXT'
