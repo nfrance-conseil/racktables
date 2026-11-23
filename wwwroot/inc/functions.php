@@ -3117,7 +3117,39 @@ function makePageParams ($params = array())
 
 function makeHrefProcess ($params = array())
 {
-	return makeHref (array ('module' => 'redirect') + makePageParams ($params));
+	return makeHref (array ('module' => 'redirect') + makePageParams ($params) + array ('csrf_token' => getCSRFToken()));
+}
+
+// Return the anti-CSRF token of the current session, generate it if necessary.
+// Every request to the "redirect" module (which runs ophandlers) must carry it.
+function getCSRFToken()
+{
+	if (isCLIMode())
+		return 'cli';
+	$was_active = session_status() == PHP_SESSION_ACTIVE;
+	startSession();
+	if (! isset ($_SESSION['csrf_token']) || ! is_string ($_SESSION['csrf_token']))
+		$_SESSION['csrf_token'] = bin2hex (random_bytes (32));
+	$ret = $_SESSION['csrf_token'];
+	if (! $was_active)
+		session_commit();
+	return $ret;
+}
+
+// Throw an exception unless the request carries the anti-CSRF token of the
+// session and does not come from a cross-site context (Fetch Metadata).
+function assertCSRFToken()
+{
+	if (array_fetch ($_SERVER, 'HTTP_SEC_FETCH_SITE', '') == 'cross-site')
+		throw new InvalidRequestArgException ('csrf_token', '', 'cross-site request refused');
+	$sent = isset ($_POST['csrf_token']) ? $_POST['csrf_token'] : array_fetch ($_GET, 'csrf_token', '');
+	$was_active = session_status() == PHP_SESSION_ACTIVE;
+	startSession();
+	$expected = array_fetch ($_SESSION, 'csrf_token', '');
+	if (! $was_active)
+		session_commit();
+	if (! is_string ($sent) || ! is_string ($expected) || $expected == '' || ! hash_equals ($expected, $sent))
+		throw new InvalidRequestArgException ('csrf_token', '', 'invalid or expired security token, reload the page and retry');
 }
 
 // Process the given list of records to build data suitable for printNiftySelect()

@@ -177,6 +177,10 @@ try {
 		require_once 'inc/solutions.php';
 		try
 		{
+			// A cross-site form or link cannot set this header (CSRF protection),
+			// jQuery sets it on every AJAX request.
+			if (array_fetch ($_SERVER, 'HTTP_X_REQUESTED_WITH', '') != 'XMLHttpRequest')
+				throw new RTPermissionDenied();
 			$ac = genericAssertion ('ac', 'string');
 			if (isset ($ajaxhandler[$ac]))
 				$ajaxhandler[$ac]();
@@ -228,6 +232,7 @@ try {
 			)
 				throw new RackTablesError ('This request has no ophandler function.', RackTablesError::INTERNAL);
 			// We have a chance to handle an error before starting HTTP header.
+			assertCSRFToken();
 			if (!isset ($delayauth["{$pageno}-{$tabno}-{$op}"]))
 				assertPermission();
 			# Call below does the job of bypass argument assertion, if such is required,

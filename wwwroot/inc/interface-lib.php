@@ -1138,6 +1138,7 @@ function printOpFormIntro ($opname, $extra = array(), $upload = FALSE)
 		echo " enctype='multipart/form-data'";
 	echo ">";
 	fillBypassValues ($pageno, $extra);
+	$extra['csrf_token'] = getCSRFToken();
 	foreach ($extra as $inputname => $inputvalue)
 		printf ('<input type=hidden name="%s" value="%s">', htmlspecialchars ($inputname, ENT_QUOTES), htmlspecialchars ($inputvalue, ENT_QUOTES));
 }
