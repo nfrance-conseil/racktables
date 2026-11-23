@@ -6017,7 +6017,7 @@ function formatAttributeValue ($record, $objtype_id)
 				{
 					if (considerGivenConstraint (NULL, $filter))
 					{
-						$blank = (preg_match ('/^https?$/', $proto) ? 'target=_blank' : '');
+						$blank = (preg_match ('/^https?$/', $proto) ? 'target=_blank rel="noopener noreferrer"' : '');
 						return "<a $blank title='Open $proto session' class='mgmt-link' href='" . htmlspecialchars ($proto . '://' . $record['a_value'], ENT_QUOTES, 'UTF-8') . "'>{$a_value}</a>";
 					}
 				}

@@ -40,12 +40,12 @@ class StringInsertHrefsTest extends RTTestCase
 			array
 			(
 				'http://server/wiki/index.php/objectname',
-				'<a href="http://server/wiki/index.php/objectname">http://server/wiki/index.php/objectname</a> [<a href="http://server/wiki/index.php/objectname" target="_blank">^</a>]'
+				'<a href="http://server/wiki/index.php/objectname">http://server/wiki/index.php/objectname</a> [<a href="http://server/wiki/index.php/objectname" target="_blank" rel="noopener noreferrer">^</a>]'
 			),
 			array
 			(
 				'http://user:pass@www.example.tld/',
-				'<a href="http://user:pass@www.example.tld/">http://user:pass@www.example.tld/</a> [<a href="http://user:pass@www.example.tld/" target="_blank">^</a>]'
+				'<a href="http://user:pass@www.example.tld/">http://user:pass@www.example.tld/</a> [<a href="http://user:pass@www.example.tld/" target="_blank" rel="noopener noreferrer">^</a>]'
 			),
 			array
 			(

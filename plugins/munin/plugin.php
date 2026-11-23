@@ -302,7 +302,7 @@ function renderObjectMuninGraphs ($object_id)
 		$munin_url = $servers[$graph['server_id']]['base_url'];
 		$text = "(graph {$graph_name} on server {$graph['server_id']})";
 		echo "<tr><td>";
-		echo "<a href='{$munin_url}/{$domain}/{$host}.{$domain}/{$graph_name}.html' target='_blank'>";
+		echo "<a href='{$munin_url}/{$domain}/{$host}.{$domain}/{$graph_name}.html' target='_blank' rel='noopener noreferrer'>";
 		echo "<img src='index.php?module=image&img=muningraph&object_id={$object_id}&server_id={$graph['server_id']}&graph={$graph_name}' alt='{$text}' title='{$text}'></a></td>";
 		echo "<td>";
 		echo getOpLink (array ('op' => 'del', 'server_id' => $graph['server_id'], 'graph' => $graph_name), '', 'Cut', 'Unlink graph', 'need-confirmation');

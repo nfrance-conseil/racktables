@@ -1285,7 +1285,7 @@ function getRSUforRow ($rowData)
 function string_insert_hrefs_callback ($m)
 {
 	$t_url_href    = 'href="' . rtrim($m[1], '.') . '"';
-	$s_url_replace = "<a {$t_url_href}>$m[1]</a> [<a {$t_url_href} target=\"_blank\">^</a>]";
+	$s_url_replace = "<a {$t_url_href}>$m[1]</a> [<a {$t_url_href} target=\"_blank\" rel=\"noopener noreferrer\">^</a>]";
 	return $s_url_replace;
 }
 
@@ -1324,7 +1324,7 @@ function string_insert_hrefs ($p_string)
 
 		# URL replacement
 		$t_url_href    = "href=\"'.rtrim('\\1','.').'\"";
-		$s_url_replace = "'<a {$t_url_href}>\\1</a> [<a {$t_url_href} target=\"_blank\">^</a>]'";
+		$s_url_replace = "'<a {$t_url_href}>\\1</a> [<a {$t_url_href} target=\"_blank\" rel=\"noopener noreferrer\">^</a>]'";
 
 		# e-mail regex
 		$s_email_regex = substr_replace (email_regex_simple(), '(?:mailto:)?', 1, 0);

@@ -294,7 +294,7 @@ function renderObjectCactiGraphs ($object_id)
 		$cacti_url = $servers[$graph['server_id']]['base_url'];
 		$text = "(graph {$graph_id} on server {$graph['server_id']})";
 		echo "<tr><td>";
-		echo "<a href='{$cacti_url}/graph.php?action=view&local_graph_id={$graph_id}&rra_id=all' target='_blank'>";
+		echo "<a href='{$cacti_url}/graph.php?action=view&local_graph_id={$graph_id}&rra_id=all' target='_blank' rel='noopener noreferrer'>";
 		echo "<img src='index.php?module=image&img=cactigraph&object_id={$object_id}&server_id={$graph['server_id']}&graph_id={$graph_id}' alt='{$text}' title='{$text}'></a></td><td>";
 		if(permitted ('object', 'cacti', 'del'))
 			echo getOpLink (array ('op' => 'del', 'server_id' => $graph['server_id'], 'graph_id' => $graph_id), '', 'Cut', 'Unlink graph', 'need-confirmation');
