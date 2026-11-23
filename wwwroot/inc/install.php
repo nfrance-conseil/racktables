@@ -25,6 +25,18 @@ if (! array_key_exists ($step, $stepfunc))
 	header ('Location: ' . $_SERVER['PHP_SELF']);
 	exit;
 }
+// Once secret.php holds a configuration, the steps that write it must not run
+// again, and once the administrator account exists no step but the last one
+// (which only displays text) may run: the installer requires no authentication.
+global $found_secret_file, $pdo_dsn;
+if ($found_secret_file && isset ($pdo_dsn) && ($step <= 3 || ($step < 7 && isInstallationComplete())))
+{
+	http_response_code (403);
+	header ('Content-Type: text/plain; charset=UTF-8');
+	echo "RackTables is already installed, the installer is disabled.\n";
+	echo "To run it again, remove the configuration file first.\n";
+	exit;
+}
 $title = "RackTables installation: step {$step} of " . count ($stepfunc);
 header ('Content-Type: text/html; charset=UTF-8');
 	// Heredoc, not nowdoc!
@@ -74,6 +86,22 @@ echo "<input type=hidden name=step value='{$next_step}'>\n";
 	echo '</html>';
 }
 
+// Tell whether the database pointed to by secret.php already holds the
+// administrator account, which the installer creates at its last stage.
+function isInstallationComplete()
+{
+	global $dbxlink;
+	try
+	{
+		connectDB();
+		return 0 < $dbxlink->query ('SELECT COUNT(*) FROM UserAccount WHERE user_id = 1')->fetchColumn();
+	}
+	catch (Exception $e)
+	{
+		return FALSE;
+	}
+}
+
 // Check if the software is already installed.
 function not_already_installed()
 {
@@ -119,17 +147,17 @@ function init_config ()
 		echo '<tr><td><label for=conn_unix>UNIX socket</label></td>';
 		echo '<td><input type=radio name=conn value=conn_unix id=conn_unix' . ($use_tcp ? '' : ' checked') . '></td></tr>';
 		echo "<tr><td><label for=mysql_host>TCP host:</label></td>";
-		echo "<td><input type=text name=mysql_host id=mysql_host value='{$tcp_host}'></td></tr>\n";
+		echo "<td><input type=text name=mysql_host id=mysql_host value='" . htmlspecialchars ((string) $tcp_host, ENT_QUOTES, 'UTF-8') . "'></td></tr>\n";
 		echo "<tr><td><label for=mysql_port>TCP port (if not 3306):</label></td>";
-		echo "<td><input type=text name=mysql_port id=mysql_port value='{$tcp_port}'></td></tr>\n";
+		echo "<td><input type=text name=mysql_port id=mysql_port value='" . htmlspecialchars ((string) $tcp_port, ENT_QUOTES, 'UTF-8') . "'></td></tr>\n";
 		echo "<tr><td><label for=mysql_socket>UNIX socket:</label></td>";
-		echo "<td><input type=text name=mysql_socket id=mysql_socket value='{$unix_socket}'></td></tr>\n";
+		echo "<td><input type=text name=mysql_socket id=mysql_socket value='" . htmlspecialchars ((string) $unix_socket, ENT_QUOTES, 'UTF-8') . "'></td></tr>\n";
 		echo "<tr><td><label for=mysql_db>database:</label></td>";
-		echo "<td><input type=text name=mysql_db id=mysql_db value='{$database}'></td></tr>\n";
+		echo "<td><input type=text name=mysql_db id=mysql_db value='" . htmlspecialchars ((string) $database, ENT_QUOTES, 'UTF-8') . "'></td></tr>\n";
 		echo "<tr><td><label for=mysql_username>username:</label></td>";
-		echo "<td><input type=text name=mysql_username id=mysql_username value='{$username}'></td></tr>\n";
+		echo "<td><input type=text name=mysql_username id=mysql_username value='" . htmlspecialchars ((string) $username, ENT_QUOTES, 'UTF-8') . "'></td></tr>\n";
 		echo "<tr><td><label for=mysql_password>password:</label></td>";
-		echo "<td><input type=password name=mysql_password id=mysql_password value='{$password}'></td></tr>\n";
+		echo "<td><input type=password name=mysql_password id=mysql_password value='" . htmlspecialchars ((string) $password, ENT_QUOTES, 'UTF-8') . "'></td></tr>\n";
 		echo '</table>';
 	}
 	global $path_to_secret_php;
@@ -226,7 +254,7 @@ function init_config ()
 			$_REQUEST['mysql_password']
 		);
 		echo "<h2 class=trerror>Database connection failed. Check parameters and try again.</h2>\n";
-		echo "PDO DSN: <tt class=trwarning>{$pdo_dsn}</tt><br>";
+		echo 'PDO DSN: <tt class=trwarning>' . htmlspecialchars ($pdo_dsn, ENT_QUOTES, 'UTF-8') . '</tt><br>';
 		return FALSE;
 	}
 
@@ -237,9 +265,10 @@ function init_config ()
 		return FALSE;
 	}
 	fwrite ($conf, "<?php\n# This file has been generated automatically by RackTables installer.\n");
-	fwrite ($conf, "\$pdo_dsn = '{$pdo_dsn}';\n");
-	fwrite ($conf, "\$db_username = '" . $_REQUEST['mysql_username'] . "';\n");
-	fwrite ($conf, "\$db_password = '" . $_REQUEST['mysql_password'] . "';\n\n");
+	// var_export() produces valid PHP literals whatever the values contain.
+	fwrite ($conf, '$pdo_dsn = ' . var_export ($pdo_dsn, TRUE) . ";\n");
+	fwrite ($conf, '$db_username = ' . var_export ($_REQUEST['mysql_username'], TRUE) . ";\n");
+	fwrite ($conf, '$db_password = ' . var_export ($_REQUEST['mysql_password'], TRUE) . ";\n\n");
 	fwrite ($conf, <<<'ENDOFTEXT'
 # Set this if you need to override the default plugins directory.
 #$racktables_plugins_dir = '/path/to/plugins';
