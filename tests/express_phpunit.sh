@@ -13,7 +13,7 @@ command -v "$PHPUNIT_BIN" >/dev/null || {
 }
 
 case $("$PHPUNIT_BIN" --version) in
-	'PHPUnit '[6789].*)
+	'PHPUnit 9.'*)
 		BOOTSTRAP_FILE=bootstrap.php
 		;;
 	*)

@@ -205,11 +205,7 @@ function coloredObject ($state, $colors, $img, $posx, $posy, $height, $width, $v
 				$posy + ($i+1) * $colorsize + ($i+1 < $count ? $diagonal : 0)
 			);
 
-		// The num_points argument is deprecated since PHP 8.1.
-		if (PHP_VERSION_ID >= 80000)
-			imagefilledpolygon ($img, $points, $color[$colorcode]);
-		else
-			imagefilledpolygon ($img, $points, 4, $color[$colorcode]);
+		imagefilledpolygon ($img, $points, $color[$colorcode]);
 
 		$i++;
 	}

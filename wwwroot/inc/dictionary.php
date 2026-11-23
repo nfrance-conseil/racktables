@@ -139,7 +139,7 @@ function platform_is_ok ($test_innodb = FALSE)
 	);
 	$nerrs = 0;
 	echo "<table border=1 cellpadding=5>\n";
-	$nerrs += platform_generic_test (version_compare (PHP_VERSION, '7.0.0', '>='), 'PHP version >= 7.0');
+	$nerrs += platform_generic_test (version_compare (PHP_VERSION, '8.2.0', '>='), 'PHP version >= 8.2');
 	foreach ($extlist as $e)
 	{
 		if (array_key_exists ('impact', $e))

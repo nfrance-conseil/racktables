@@ -56,7 +56,8 @@ if (! isset ($local_gwdir)) // the directory where RT will search gateway script
 if (! isset ($local_staticdir)) // the directory where RT will search static files (js/*, css/*, pix/*) if not found in $racktables_staticdir
 	$local_staticdir = $racktables_plugins_dir;
 
-// PHP 8.4 introduced Pdo\Mysql::ATTR_* and PHP 8.5 deprecated PDO::MYSQL_ATTR_*.
+// PHP 8.4 introduced Pdo\Mysql::ATTR_* and PHP 8.5 deprecated PDO::MYSQL_ATTR_*,
+// the latter remain necessary for PHP 8.2 and 8.3.
 function pdoMySQLAttr ($name)
 {
 	return constant (class_exists ('Pdo\\Mysql') ? "Pdo\\Mysql::ATTR_{$name}" : "PDO::MYSQL_ATTR_{$name}");

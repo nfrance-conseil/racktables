@@ -5958,7 +5958,8 @@ function isIPNetworkEmpty (&$netinfo)
 	return ($netinfo['own_addrc'] <= $pure_auto);
 }
 
-// PHP 8.5 provides native array_first() and array_last() with the same semantics.
+// PHP 8.5 provides native array_first() and array_last() with the same semantics,
+// these definitions remain necessary for PHP 8.2 to 8.4.
 if (! function_exists ('array_first'))
 {
 // returns the first element of given array, or NULL if array is empty
