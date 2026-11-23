@@ -220,7 +220,7 @@ function gotClearanceForTagChain ($const_base)
 				}
 				break;
 			default:
-				throw new RackTablesError ("Can't process sentence of unknown type '${sentence['type']}'", RackTablesError::INTERNAL);
+				throw new RackTablesError ("Can't process sentence of unknown type '{$sentence['type']}'", RackTablesError::INTERNAL);
 		}
 	}
 	return FALSE;
@@ -474,6 +474,17 @@ function authenticated_via_ldap_cache ($username, $password, &$ldap_displayname)
 // 'displayed_name' : a string built according to LDAP displayname_attrs option
 // 'memberof' => filtered list of all LDAP groups the user belongs to
 //
+// Calling ldap_connect() with a host and a port is deprecated since PHP 8.3,
+// build an LDAP URI unless the server is already given as one.
+function LDAPServerURI ($server, $port)
+{
+	if (FALSE !== strpos ($server, '://'))
+		return $server;
+	if (FALSE !== strpos ($server, ':') && $server[0] != '[') // IPv6 address
+		$server = "[{$server}]";
+	return "ldap://{$server}:{$port}";
+}
+
 function queryLDAPServer ($username, $password)
 {
 	global $LDAP_options;
@@ -500,7 +511,7 @@ function queryLDAPServer ($username, $password)
 	// Try to connect to each server until first success
 	foreach ($servers as $server)
 	{
-		$connect = @ldap_connect ($server, array_fetch ($LDAP_options, 'port', 389));
+		$connect = @ldap_connect (LDAPServerURI ($server, array_fetch ($LDAP_options, 'port', 389)));
 		if ($connect === FALSE)
 			continue;
 		ldap_set_option ($connect, LDAP_OPT_NETWORK_TIMEOUT, array_fetch ($LDAP_options, 'server_alive_timeout', 2));
@@ -525,7 +536,7 @@ function queryLDAPServer ($username, $password)
 				$success_server = $server;
 				// Cleanup after check. This connection will be used below
 				@ldap_unbind ($connect);
-				$connect = ldap_connect ($server, array_fetch ($LDAP_options, 'port', 389));
+				$connect = ldap_connect (LDAPServerURI ($server, array_fetch ($LDAP_options, 'port', 389)));
 				break;
 			}
 		}
@@ -573,7 +584,7 @@ function queryLDAPServer ($username, $password)
 					RackTablesError::MISCONFIGURED
 				);
 		}
-		$results = @ldap_search ($connect, $LDAP_options['search_dn'], '(' . $LDAP_options['search_attr'] . "=${username})", array("dn"));
+		$results = @ldap_search ($connect, $LDAP_options['search_dn'], '(' . $LDAP_options['search_attr'] . "={$username})", array("dn"));
 		if ($results === FALSE)
 			return array ('result' => 'CAN');
 		if (@ldap_count_entries ($connect, $results) != 1)
@@ -614,7 +625,7 @@ function queryLDAPServer ($username, $password)
 		(
 			$connect,
 			$LDAP_options['search_dn'],
-			'(' . $LDAP_options['search_attr'] . "=${username})",
+			'(' . $LDAP_options['search_attr'] . "={$username})",
 			array_merge (array ($LDAP_options['group_attr']), explode (' ', $LDAP_options['displayname_attrs']))
 		);
 		if (@ldap_count_entries ($connect, $results) != 1)

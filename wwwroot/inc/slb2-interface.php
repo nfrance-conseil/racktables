@@ -38,7 +38,7 @@ function renderVS ($vsid)
 
 	echo '<table border=0 class=objectview cellspacing=0 cellpadding=0>';
 	if ($vsinfo['name'] != '')
-		echo "<tr><td colspan=2 align=center><h1>${vsinfo['name']}</h1></td></tr>\n";
+		echo "<tr><td colspan=2 align=center><h1>{$vsinfo['name']}</h1></td></tr>\n";
 	echo '<tr>';
 
 	echo '<td class=pcleft>';
@@ -89,7 +89,7 @@ function renderPopupTripletForm ($triplet, $port, $vip, $row)
 	else
 	{
 		echo '<input type=hidden name=vip value="'  . htmlspecialchars (ip_format ($vip['vip']), ENT_QUOTES) . '">';
-		echo '<p><label>Priority:<br><input type=text name=prio value="'  . htmlspecialchars (is_array ($row) ? $row['prio'] : '', ENT_QUOTES) . '"></label>';
+		echo '<p><label>Priority:<br><input type=text name=prio value="'  . htmlspecialchars (is_array ($row) ? (string) $row['prio'] : '', ENT_QUOTES) . '"></label>';
 	}
 	echo '<p><label>VS config:<br>';
 	echo '<textarea name=vsconfig rows=3 cols=80>' . (is_array ($row) ? stringForTextarea ($row['vsconfig']) : '') . '</textarea></label>';
@@ -343,12 +343,12 @@ function renderSLBTriplets2 ($cell, $editable = FALSE, $hl_ip = NULL)
 		amplifyCell ($vs_cell);
 		echo makeHtmlTag ('tr', array(
 			'valign' => 'top',
-			'class' => "row_${order} triplet-row",
+			'class' => "row_{$order} triplet-row",
 			'data-object_id' => $slb['object_id'],
 			'data-vs_id' => $slb['vs_id'],
 			'data-rspool_id' => $slb['rspool_id'],
 		));
-		echo '<td><a href="#" onclick="' . "slb_config_preview(event, ${slb['object_id']}, ${slb['vs_id']}, ${slb['rspool_id']}); return false" . '">' . getImageHREF ('Zoom', 'config preview') . '</a></td>';
+		echo '<td><a href="#" onclick="' . "slb_config_preview(event, {$slb['object_id']}, {$slb['vs_id']}, {$slb['rspool_id']}); return false" . '">' . getImageHREF ('Zoom', 'config preview') . '</a></td>';
 		foreach (array_keys ($headers) as $realm)
 		{
 			if ($realm == $cell['realm'])

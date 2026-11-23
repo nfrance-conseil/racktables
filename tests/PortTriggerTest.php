@@ -5,6 +5,9 @@
 
 class PortTriggerTest extends RTTestCase
 {
+	protected $object1_id, $object2_id;
+	protected $port1_1_id, $port1_2_id, $port1_3_id, $port1_4_id, $port2_1_id;
+
 	public function setUp () : void
 	{
 		$this->object1_id = commitAddObject ($this->myString ('object 1'), NULL, 1, NULL);

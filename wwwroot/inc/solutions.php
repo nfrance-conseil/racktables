@@ -205,13 +205,11 @@ function coloredObject ($state, $colors, $img, $posx, $posy, $height, $width, $v
 				$posy + ($i+1) * $colorsize + ($i+1 < $count ? $diagonal : 0)
 			);
 
-		imagefilledpolygon
-		(
-			$img,
-			$points,
-			4,
-			$color[$colorcode]
-		);
+		// The num_points argument is deprecated since PHP 8.1.
+		if (PHP_VERSION_ID >= 80000)
+			imagefilledpolygon ($img, $points, $color[$colorcode]);
+		else
+			imagefilledpolygon ($img, $points, 4, $color[$colorcode]);
 
 		$i++;
 	}
@@ -292,11 +290,9 @@ function printRackThumbImage ($rack_id, $scale = 1, $object_id = NULL)
 	{
 		$resized = imagecreate ($totalwidth * $scale, $totalheight * $scale);
 		imagecopyresized ($resized, $img, 0, 0, 0, 0, $totalwidth * $scale, $totalheight * $scale, $totalwidth, $totalheight);
-		imagedestroy ($img);
 		$img = $resized;
 	}
 	imagepng ($img);
-	imagedestroy ($img);
 }
 
 function renderProgressBarImage ($done)
@@ -329,7 +325,6 @@ function renderProgressBarImage ($done)
 	}
 	header("Content-Type: image/png");
 	imagepng ($img);
-	imagedestroy ($img);
 }
 
 function renderProgressBar4Image ($px1, $px2, $px3)
@@ -390,7 +385,6 @@ function renderProgressBar4Image ($px1, $px2, $px3)
 	}
 	header("Content-Type: image/png");
 	imagepng ($img);
-	imagedestroy ($img);
 }
 
 // XXX: deprecated
@@ -421,14 +415,12 @@ function renderImagePreview ($file_id)
 		$newheight = $height * $ratio;
 		$resampled = imagecreatetruecolor ($newwidth, $newheight);
 		imagecopyresampled ($resampled, $image, 0, 0, 0, 0, $newwidth, $newheight, $width, $height);
-		imagedestroy ($image);
 		$image = $resampled;
 		unset ($resampled);
 	}
 	header ('Content-Type: image/jpeg');
 	ob_start();
 	imagejpeg ($image);
-	imagedestroy ($image);
 	commitAddFileCache ($file_id, ob_get_flush());
 }
 
@@ -477,9 +469,9 @@ function proxyStaticURI ($URI)
 		printStatic404();
 	global $local_staticdir, $racktables_staticdir;
 	if (isset ($local_staticdir))
-		$fh = @fopen ("${local_staticdir}/${URI}", 'r');
+		$fh = @fopen ("{$local_staticdir}/{$URI}", 'r');
 	if (! isset ($fh) || FALSE === $fh)
-		$fh = @fopen ("${racktables_staticdir}/${URI}", 'r');
+		$fh = @fopen ("{$racktables_staticdir}/{$URI}", 'r');
 	if (FALSE === $fh)
 		printStatic404();
 	if (FALSE !== $stat = fstat ($fh))
@@ -520,10 +512,10 @@ function printSVGMessageBar ($text = 'lost message', $textattrs = array(), $rect
 	echo "xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'>\n";
 	echo '<rect';
 	foreach ($myrectattrs as $k => $v)
-		echo " ${k}='${v}'";
+		echo " {$k}='{$v}'";
 	echo " />\n<text";
 	foreach ($mytextattrs as $k => $v)
-		echo " ${k}='${v}'";
-	echo ">${text}</text>\n";
+		echo " {$k}='{$v}'";
+	echo ">{$text}</text>\n";
 	echo "</svg>\n";
 }

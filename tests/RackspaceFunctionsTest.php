@@ -12,7 +12,7 @@ class RackspaceFunctionsTest extends RTTestCase
 	public static function setUpBeforeClass () : void
 	{
 		// This method is static and thus cannot call myString(), which uses $this.
-		self::$row_name = sprintf ('testrow-%s-%u', get_class(), getmypid());
+		self::$row_name = sprintf ('testrow-%s-%u', static::class, getmypid());
 		self::$row_id = commitAddObject (self::$row_name, NULL, 1561, NULL);
 	}
 
@@ -53,7 +53,7 @@ class RackspaceFunctionsTest extends RTTestCase
 			foreach ($objectlist as $each)
 			{
 				list ($prefix, $objtype_id, $unit_nos) = $each;
-				$object_id = $this->createObjectInRack ("${prefix}-${rack_id}", $objtype_id, $rack_id, $unit_nos);
+				$object_id = $this->createObjectInRack ("{$prefix}-{$rack_id}", $objtype_id, $rack_id, $unit_nos);
 				$ret[$rack_id][$object_id] = count ($unit_nos);
 			}
 			$i++;

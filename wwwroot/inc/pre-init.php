@@ -56,6 +56,12 @@ if (! isset ($local_gwdir)) // the directory where RT will search gateway script
 if (! isset ($local_staticdir)) // the directory where RT will search static files (js/*, css/*, pix/*) if not found in $racktables_staticdir
 	$local_staticdir = $racktables_plugins_dir;
 
+// PHP 8.4 introduced Pdo\Mysql::ATTR_* and PHP 8.5 deprecated PDO::MYSQL_ATTR_*.
+function pdoMySQLAttr ($name)
+{
+	return constant (class_exists ('Pdo\\Mysql') ? "Pdo\\Mysql::ATTR_{$name}" : "PDO::MYSQL_ATTR_{$name}");
+}
+
 // (re)connects to DB, stores PDO object in $dbxlink global var
 function connectDB()
 {
@@ -70,16 +76,16 @@ function connectDB()
 		// stop changing @@SQL_MODE but still keep SET NAMES in place.
 		// RackTables requires the strict SQL mode, which is not enabled by default
 		// in MariaDB <= 10.2.3.
-		PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "utf8", @@SQL_MODE = CONCAT("STRICT_ALL_TABLES,", REPLACE(@@SQL_MODE, "NO_ZERO_DATE", ""))',
+		pdoMySQLAttr ('INIT_COMMAND') => 'SET NAMES "utf8", @@SQL_MODE = CONCAT("STRICT_ALL_TABLES,", REPLACE(@@SQL_MODE, "NO_ZERO_DATE", ""))',
 	);
 	if (isset ($pdo_bufsize))
-		$drvoptions[PDO::MYSQL_ATTR_MAX_BUFFER_SIZE] = $pdo_bufsize;
+		$drvoptions[pdoMySQLAttr ('MAX_BUFFER_SIZE')] = $pdo_bufsize;
 	if (isset ($pdo_ssl_key))
-		$drvoptions[PDO::MYSQL_ATTR_SSL_KEY] = $pdo_ssl_key;
+		$drvoptions[pdoMySQLAttr ('SSL_KEY')] = $pdo_ssl_key;
 	if (isset ($pdo_ssl_cert))
-		$drvoptions[PDO::MYSQL_ATTR_SSL_CERT] = $pdo_ssl_cert;
+		$drvoptions[pdoMySQLAttr ('SSL_CERT')] = $pdo_ssl_cert;
 	if (isset ($pdo_ssl_ca))
-		$drvoptions[PDO::MYSQL_ATTR_SSL_CA] = $pdo_ssl_ca;
+		$drvoptions[pdoMySQLAttr ('SSL_CA')] = $pdo_ssl_ca;
 	try
 	{
 		$dbxlink = new PDO ($pdo_dsn, $db_username, $db_password, $drvoptions);

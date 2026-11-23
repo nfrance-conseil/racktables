@@ -8,12 +8,14 @@ function reloadDictionary ($rows_per_query = 25)
 {
 	global $dictionary;
 
-	function buildInsert ($vlist)
+	// A closure rather than a nested named function, which would cause a fatal
+	// error on the second call to reloadDictionary() within the same process.
+	$buildInsert = function ($vlist)
 	{
 		$ret= 'INSERT INTO Dictionary (dict_key, chapter_id, dict_value, dict_sticky) VALUES ';
 		$ret .= implode (', ', $vlist);
 		return $ret;
-	}
+	};
 
 	// isNaturalNumber() depends on functions.php, which is not involved in an upgrade (see index.php).
 	$rows_per_query = (int) $rows_per_query;
@@ -26,15 +28,15 @@ function reloadDictionary ($rows_per_query = 25)
 	# is likely to hit the default execution time limit of 30 seconds.
 	foreach ($dictionary as $dict_key => $record)
 	{
-		$vlist[] = "(${dict_key}, ${record['chapter_id']}, '${record['dict_value']}', 'yes')";
+		$vlist[] = "({$dict_key}, {$record['chapter_id']}, '{$record['dict_value']}', 'yes')";
 		if (count ($vlist) == $rows_per_query)
 		{
-			$ret[] = buildInsert ($vlist);
+			$ret[] = $buildInsert ($vlist);
 			$vlist = array();
 		}
 	}
 	if (count ($vlist))
-		$ret[] = buildInsert ($vlist);
+		$ret[] = $buildInsert ($vlist);
 	return $ret;
 }
 
@@ -53,13 +55,13 @@ function isInnoDBSupported ()
 
 function platform_generic_test ($is_ok, $topic, $what_if_not = 'FAILED', $error_class = 'trerror')
 {
-	echo "<tr><th class=tdleft>${topic}</th>";
+	echo "<tr><th class=tdleft>{$topic}</th>";
 	if ($is_ok)
 	{
 		echo '<td class="trok tdleft">PASSED</td></tr>';
 		return 0;
 	}
-	echo "<td class='${error_class} tdleft'>${what_if_not}</td></tr>";
+	echo "<td class='{$error_class} tdleft'>{$what_if_not}</td></tr>";
 	return 1;
 }
 
