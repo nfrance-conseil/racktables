@@ -3120,6 +3120,32 @@ function makeHrefProcess ($params = array())
 	return makeHref (array ('module' => 'redirect') + makePageParams ($params) + array ('csrf_token' => getCSRFToken()));
 }
 
+// The file type stored in the database comes from the client, so the server
+// determines it from the contents. Only a few harmless types may be rendered
+// by the browser (inline), anything else is served as a generic attachment.
+function sendFileDownloadHeaders ($file, $inline_requested)
+{
+	static $inline_types = array ('image/png', 'image/jpeg', 'image/gif', 'image/webp', 'text/plain');
+	$type = 'application/octet-stream';
+	if (function_exists ('finfo_open') && FALSE !== $finfo = finfo_open (FILEINFO_MIME_TYPE))
+	{
+		$detected = finfo_buffer ($finfo, $file['contents']);
+		if (in_array ($detected, $inline_types, TRUE))
+			$type = $detected;
+	}
+	$inline = $inline_requested && $type != 'application/octet-stream';
+	header ('Content-Type: ' . ($type == 'text/plain' ? 'text/plain; charset=UTF-8' : $type));
+	header ('Content-Length: ' . strlen ($file['contents']));
+	header ('X-Content-Type-Options: nosniff');
+	header ("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox");
+	$ascii_name = preg_replace ('/[^\x20-\x7E]|["\\\\]/', '_', $file['name']);
+	header
+	(
+		'Content-Disposition: ' . ($inline ? 'inline' : 'attachment') .
+		"; filename=\"{$ascii_name}\"; filename*=UTF-8''" . rawurlencode ($file['name'])
+	);
+}
+
 // Return the anti-CSRF token of the current session, generate it if necessary.
 // Every request to the "redirect" module (which runs ophandlers) must carry it.
 function getCSRFToken()
@@ -6767,7 +6793,17 @@ function customKsort ($array, $order)
 function startSession()
 {
 	if (session_status() != PHP_SESSION_ACTIVE)
-		session_start();
+	{
+		if (! headers_sent())
+			session_set_cookie_params (array
+			(
+				'path' => '/',
+				'secure' => isHTTPSRequest(),
+				'httponly' => TRUE,
+				'samesite' => 'Lax',
+			));
+		session_start (array ('use_strict_mode' => TRUE, 'use_only_cookies' => TRUE));
+	}
 }
 
 // loads session data. Use if you need to only read from _SESSION.

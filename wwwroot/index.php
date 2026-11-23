@@ -6,6 +6,7 @@
 
 ob_start();
 require_once 'inc/pre-init.php';
+sendSecurityHeaders();
 try {
 	// Switch block below is a module request dispatcher.
 	// Dispatches based on module request.
@@ -62,10 +63,7 @@ try {
 		fixContext();
 		assertPermission();
 		$file = getFile (getBypassValue());
-		header("Content-Type: {$file['type']}");
-		header("Content-Length: {$file['size']}");
-		if (! array_key_exists ('asattach', $_REQUEST) || $_REQUEST['asattach'] != 'no')
-			header("Content-Disposition: attachment; filename={$file['name']}");
+		sendFileDownloadHeaders ($file, array_key_exists ('asattach', $_REQUEST) && $_REQUEST['asattach'] == 'no');
 		echo $file['contents'];
 		break;
 

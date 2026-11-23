@@ -402,6 +402,27 @@ function stringTrace ($trace)
 	return $ret;
 }
 
+// Log the details of an unexpected exception. Unless $debug_mode is set (in
+// secret.php), display only an incident reference: the details (messages,
+// call arguments, request parameters, cookies) may disclose sensitive data.
+// Returns TRUE if the details should be displayed, otherwise finishes the page.
+function printExceptionDetailsAllowed ($e)
+{
+	global $debug_mode;
+	$incident = bin2hex (random_bytes (6));
+	error_log
+	(
+		"RackTables incident {$incident}: " . get_class ($e) . ': ' . $e->getMessage() .
+		' at ' . $e->getFile() . ':' . $e->getLine() . "\n" . $e->getTraceAsString()
+	);
+	if (isset ($debug_mode) && $debug_mode)
+		return TRUE;
+	echo '<h2>Internal error</h2><p>The request could not be completed. ' .
+		"Please report the incident reference <code>{$incident}</code> to the administrator.</p>";
+	echo '</body></html>';
+	return FALSE;
+}
+
 function printPDOException ($e)
 {
 	header ('HTTP/1.1 500 Internal Server Error');
@@ -412,13 +433,15 @@ function printPDOException ($e)
 	echo "<link rel=stylesheet type='text/css' href='?module=chrome&uri=css/pi.css' />\n";
 	echo "<link rel=icon href='?module=chrome&uri=pix/favicon.ico' type='image/x-icon' />\n";
 	echo '</head><body>';
-	echo '<h2>PDOException</h2><code>' . $e->getMessage() . '</code> (<code>' . $e->getCode() . '</code>)';
-	echo '<p>at file <code>' . $e->getFile() . '</code>, line <code>' . $e->getLine() . '</code></p><pre>';
-	echo stringTrace ($e->getTrace());
+	if (! printExceptionDetailsAllowed ($e))
+		return;
+	echo '<h2>PDOException</h2><code>' . htmlspecialchars ($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</code> (<code>' . htmlspecialchars ($e->getCode(), ENT_QUOTES, 'UTF-8') . '</code>)';
+	echo '<p>at file <code>' . htmlspecialchars ($e->getFile(), ENT_QUOTES, 'UTF-8') . '</code>, line <code>' . $e->getLine() . '</code></p><pre>';
+	echo htmlspecialchars (stringTrace ($e->getTrace()), ENT_QUOTES, 'UTF-8');
 	echo '</pre>';
 	echo '<h2>Error info:</h2>';
 	echo '<pre>';
-	print_r ($e->errorInfo);
+	echo htmlspecialchars (print_r ($e->errorInfo, TRUE), ENT_QUOTES, 'UTF-8');
 	echo '</pre>';
 	echo '<h2>Parameters:</h2>';
 	echo '<h3>GET</h3>';
@@ -440,9 +463,11 @@ function printGenericException ($e)
 	echo "<link rel=stylesheet type='text/css' href='?module=chrome&uri=css/pi.css' />\n";
 	echo "<link rel=icon href='?module=chrome&uri=pix/favicon.ico' type='image/x-icon' />\n";
 	echo '</head> <body>';
-	echo '<h2>Uncaught exception: ' . get_class ($e) . '</h2><code>' . $e->getMessage() . '</code> (<code>' . $e->getCode() . '</code>)';
-	echo '<p>at file <code>' . $e->getFile() . '</code>, line <code>' . $e->getLine() . '</code></p><pre>';
-	echo stringTrace ($e->getTrace());
+	if (! printExceptionDetailsAllowed ($e))
+		return;
+	echo '<h2>Uncaught exception: ' . get_class ($e) . '</h2><code>' . htmlspecialchars ($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</code> (<code>' . htmlspecialchars ($e->getCode(), ENT_QUOTES, 'UTF-8') . '</code>)';
+	echo '<p>at file <code>' . htmlspecialchars ($e->getFile(), ENT_QUOTES, 'UTF-8') . '</code>, line <code>' . $e->getLine() . '</code></p><pre>';
+	echo htmlspecialchars (stringTrace ($e->getTrace()), ENT_QUOTES, 'UTF-8');
 	echo '</pre>';
 	echo '<h2>Parameters:</h2>';
 	echo '<h3>GET</h3>';

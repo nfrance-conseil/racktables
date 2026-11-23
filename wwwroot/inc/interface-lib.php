@@ -1197,6 +1197,27 @@ function safeHref ($url)
 	return htmlspecialchars ($url, ENT_QUOTES, 'UTF-8');
 }
 
+// Send the HTTP response headers that harden every page: no framing, no MIME
+// sniffing, no leak of URLs (which may carry the anti-CSRF token) to other
+// sites, HTTPS only once used.
+function sendSecurityHeaders()
+{
+	if (isCLIMode() || headers_sent())
+		return;
+	header ('X-Content-Type-Options: nosniff');
+	header ('X-Frame-Options: DENY');
+	header ('Referrer-Policy: same-origin');
+	header ("Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'");
+	if (isHTTPSRequest())
+		header ('Strict-Transport-Security: max-age=31536000');
+}
+
+function isHTTPSRequest()
+{
+	return (isset ($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != '' && strtolower ($_SERVER['HTTPS']) != 'off') ||
+		(isset ($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+}
+
 // "Some text, %s, some more text."
 function stringForLabel ($string, $maxlen = 30)
 {
