@@ -2593,8 +2593,20 @@ function replaceFile ()
 
 function unlinkFile ()
 {
+	global $pageno;
 	setFuncMessages (__FUNCTION__, array ('OK' => 72));
-	commitUnlinkFile (genericAssertion ('link_id', 'natural'));
+	$link_id = genericAssertion ('link_id', 'natural');
+	// The permission was checked for the entity of the page, make sure the
+	// link belongs to it (the "files" page manages all the files).
+	if ($pageno != 'files')
+	{
+		$result = usePreparedSelectBlade ('SELECT entity_type, entity_id FROM FileLink WHERE id = ?', array ($link_id));
+		$link = $result->fetch (PDO::FETCH_ASSOC);
+		unset ($result);
+		if (! $link || $link['entity_type'] != etypeByPageno() || $link['entity_id'] != getBypassValue())
+			throw new InvalidRequestArgException ('link_id', $link_id, 'not a link of this entity');
+	}
+	commitUnlinkFile ($link_id);
 	showFuncMessage (__FUNCTION__, 'OK');
 }
 
@@ -3373,7 +3385,12 @@ function getOpspec()
 
 function unlinkPort ()
 {
-	commitUnlinkPort (genericAssertion ('port_id', 'natural'));
+	$port_id = genericAssertion ('port_id', 'natural');
+	// The permission was checked for the object of the page.
+	$port_info = getPortInfo ($port_id);
+	if (! $port_info || $port_info['object_id'] != getBypassValue())
+		throw new InvalidRequestArgException ('port_id', $port_id, 'not a port of this object');
+	commitUnlinkPort ($port_id);
 	showSuccess ("Port unlinked successfully");
 }
 

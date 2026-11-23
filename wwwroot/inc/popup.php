@@ -216,12 +216,22 @@ function renderPopupObjectSelector()
 
 function handlePopupPortLink()
 {
+	// This modifies data: require the anti-CSRF token and the permission to
+	// edit the ports of both objects (not only to view the depot).
+	assertCSRFToken();
 	assertPermission('depot', 'default');
 	genericAssertion ('port', 'natural');
 	genericAssertion ('remote_port', 'natural');
 	assertStringArg ('cable', TRUE);
 	$port_info = getPortInfo ($_REQUEST['port']);
 	$remote_port_info = getPortInfo ($_REQUEST['remote_port']);
+	$ctx = getContext();
+	foreach (array ($port_info['object_id'], $remote_port_info['object_id']) as $object_id)
+	{
+		fixContext (spotEntity ('object', $object_id));
+		assertPermission ('object', 'ports', 'editPort');
+		restoreContext ($ctx);
+	}
 	$POIFC = getPortOIFCompat();
 	if (isset ($_REQUEST['port_type']) && isset ($_REQUEST['remote_port_type']))
 	{
@@ -320,9 +330,10 @@ END
 END
 		);
 		// render port type editor form
-		echo '<form method=GET>';
+		echo '<form method=POST>';
 		echo '<input type=hidden name="module" value="popup">';
 		echo '<input type=hidden name="helper" value="portlist">';
+		echo '<input type=hidden name="csrf_token" value="' . getCSRFToken() . '">';
 		echo '<input type=hidden name="port" value="' . $port_info['id'] . '">';
 		echo '<input type=hidden name="remote_port" value="' . $remote_port_info['id'] . '">';
 		echo '<input type=hidden name="cable" value="' . htmlspecialchars ($_REQUEST['cable'], ENT_QUOTES) . '">';
@@ -410,10 +421,11 @@ function renderPopupPortSelector()
 
 	// display search form
 	echo 'Link ' . formatPort ($port_info) . ' to...';
-	echo '<form method=GET>';
+	echo '<form method=POST>';
 	startPortlet ('Port list filter');
 	echo '<input type=hidden name="module" value="popup">';
 	echo '<input type=hidden name="helper" value="portlist">';
+	echo '<input type=hidden name="csrf_token" value="' . getCSRFToken() . '">';
 	echo '<input type=hidden name="port" value="' . $port_id . '">';
 	echo '<table align="center" valign="bottom"><tr>';
 	echo '<td class="tdleft"><label>Object name:<br><input id="filter-obj" type=text size=8 name="filter-obj" value="' . htmlspecialchars ($filter['objects'], ENT_QUOTES) . '"></label></td>';

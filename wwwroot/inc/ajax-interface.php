@@ -284,7 +284,15 @@ function updateRackSortOrderAJAX()
 	$tabno = 'editracks';
 	fixContext();
 	assertPermission (NULL, NULL, 'save'); // FIXME: operation code not in navigation.php
-	updateRackSortOrder ($_REQUEST['racks']);
+	$racks = genericAssertion ('racks', 'array');
+	// The permission was checked for the row, accept only its racks.
+	foreach ($racks as $rack_id)
+	{
+		$rack = spotEntity ('rack', $rack_id);
+		if ($rack['row_id'] != getBypassValue())
+			throw new InvalidRequestArgException ('racks', $rack_id, 'not a rack of this row');
+	}
+	updateRackSortOrder (array_values ($racks));
 	echo 'OK';
 }
 

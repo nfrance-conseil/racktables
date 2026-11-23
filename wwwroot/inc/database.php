@@ -6168,6 +6168,9 @@ function getPlugin ($name)
 
 	global $racktables_plugins_dir;
 	$in_code = array ();
+	// The name may come from the request, it must not be a path.
+	if (! preg_match ('/^[A-Za-z0-9_]+$/D', $name))
+		throw new InvalidArgException ('name', $name, 'not a plugin name');
 	if (file_exists ("$racktables_plugins_dir/{$name}/plugin.php"))
 	{
 		require_once "{$racktables_plugins_dir}/{$name}/plugin.php";
