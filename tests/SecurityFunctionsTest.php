@@ -115,6 +115,9 @@ class SecurityFunctionsTest extends RTTestCase
 	 */
 	public function testCSRFTokenInForms ()
 	{
+		global $pageno, $tabno;
+		$pageno = 'index';
+		$tabno = 'default';
 		ob_start();
 		printOpFormIntro ('someOp', array ('x' => '"><script>'));
 		$html = ob_get_clean();
