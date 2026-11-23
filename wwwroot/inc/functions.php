@@ -3150,16 +3150,19 @@ function sendFileDownloadHeaders ($file, $inline_requested)
 // Every request to the "redirect" module (which runs ophandlers) must carry it.
 function getCSRFToken()
 {
+	static $token = NULL;
 	if (isCLIMode())
 		return 'cli';
+	if ($token !== NULL)
+		return $token;
 	$was_active = session_status() == PHP_SESSION_ACTIVE;
 	startSession();
 	if (! isset ($_SESSION['csrf_token']) || ! is_string ($_SESSION['csrf_token']))
 		$_SESSION['csrf_token'] = bin2hex (random_bytes (32));
-	$ret = $_SESSION['csrf_token'];
+	$token = $_SESSION['csrf_token'];
 	if (! $was_active)
 		session_commit();
-	return $ret;
+	return $token;
 }
 
 // Throw an exception unless the request carries the anti-CSRF token of the

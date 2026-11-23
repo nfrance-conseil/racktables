@@ -3,6 +3,42 @@ Thank you for selecting RackTables as your datacenter management solution!
 If you are looking for documentation or wish to send feedback, please
 look for the respective links at [project's web-site](https://racktables.org).
 
+# Docker deployment
+
+The repository provides a container image (`Dockerfile`) and a Compose file
+(`compose.yaml`) that run RackTables with MariaDB:
+
+```
+./docker/make-secrets.sh        # once: random passwords in ./secrets/
+docker compose up -d --build
+```
+
+Then log in at http://127.0.0.1:8080/ as `admin`, with the password stored
+in `secrets/admin_password.txt`. On its first start the application container
+creates the database schema and the administrator account.
+
+* Images: the Docker Official Images `php:8.5-apache-trixie` and
+  `mariadb:11.8` (LTS), which Docker rebuilds for every security update.
+  Rebuild regularly (`docker compose build --pull && docker compose up -d`).
+* Hardening: the application runs as `www-data` on port 8080 with a read-only
+  root filesystem, no Linux capabilities and `no-new-privileges`; the database
+  is only reachable from an internal network; the passwords are Docker
+  secrets; only `index.php` and static files are served; PHP runs with the
+  production settings (no error display, no `allow_url_fopen`...).
+* HTTPS: RackTables uses HTTP basic authentication, put an HTTPS reverse
+  proxy in front of the container. Set `RT_TRUSTED_PROXIES` to the address of
+  the proxy so that the client addresses (login throttling) and the HTTPS
+  scheme (HSTS, Secure cookie) are taken from `X-Forwarded-For` and
+  `X-Forwarded-Proto`. `RT_HTTP_BIND` and `RT_HTTP_PORT` set the published
+  address and port (default `127.0.0.1:8080`).
+* Configuration: the database settings come from `RT_DB_*` variables (see
+  `docker/secret.php`). Other `secret.php` settings (LDAP, SAML...) go to a
+  file mounted as `/etc/racktables/secret.php`.
+* Upgrades: back the `db-data` volume up, deploy the new image, then open
+  `index.php?module=upgrade` as `admin`.
+* The image does not include the Perl modules needed by the gateways (live
+  device queries through telnet/ssh).
+
 # How to install RackTables
 
 ## 1. Prepare the server

@@ -1,0 +1,11 @@
+.git
+.github
+.idea
+secrets
+tests
+compose.yaml
+Dockerfile
+.dockerignore
+wwwroot/inc/secret.php
+wwwroot/inc/local.php
+**/*~

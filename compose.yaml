@@ -1,0 +1,88 @@
+# RackTables with MariaDB. See README.md, section "Docker deployment".
+#
+#   ./docker/make-secrets.sh   # once: random passwords in ./secrets/
+#   docker compose up -d --build
+#
+# The web interface listens on http://127.0.0.1:8080/ (RT_HTTP_BIND and
+# RT_HTTP_PORT change that). Put an HTTPS reverse proxy in front of it:
+# RackTables uses HTTP basic authentication.
+
+name: racktables
+
+services:
+  db:
+    image: mariadb:11.8
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb3
+      - --collation-server=utf8mb3_general_ci
+    environment:
+      MARIADB_DATABASE: racktables
+      MARIADB_USER: racktables
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MARIADB_AUTO_UPGRADE: "1"
+    secrets:
+      - db_password
+      - db_root_password
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  app:
+    build: .
+    image: racktables:0.22.1
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      RT_DB_HOST: db
+      RT_DB_NAME: racktables
+      RT_DB_USER: racktables
+      RT_DB_PASSWORD_FILE: /run/secrets/db_password
+      RT_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      # Address(es) of the reverse proxy, see docker/docker-entrypoint.sh.
+      RT_TRUSTED_PROXIES: ${RT_TRUSTED_PROXIES:-}
+    secrets:
+      - db_password
+      - admin_password
+    ports:
+      - "${RT_HTTP_BIND:-127.0.0.1}:${RT_HTTP_PORT:-8080}:8080"
+    networks:
+      - backend
+      - frontend
+    read_only: true
+    tmpfs:
+      - /tmp:mode=1777,size=64m
+      - /var/run/apache2:uid=33,gid=33,mode=0700,size=1m
+      - /var/lock/apache2:uid=33,gid=33,mode=0700,size=1m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  admin_password:
+    file: ./secrets/admin_password.txt
+
+volumes:
+  db-data:
+
+networks:
+  backend:
+    internal: true
+  frontend:
