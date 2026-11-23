@@ -322,6 +322,9 @@ function constructLDAPOptions()
 		'cache_refresh' => 300,
 		'cache_retry' => 15,
 		'cache_expiry' => 600,
+		// The user password is sent with the bind: require TLS unless
+		// explicitly disabled (or provided by ldaps:// servers).
+		'use_tls' => 2,
 	);
 	foreach ($LDAP_defaults as $option_name => $option_value)
 		if (! array_key_exists ($option_name, $LDAP_options))
@@ -477,16 +480,6 @@ function authenticated_via_ldap_cache ($username, $password, &$ldap_displayname)
 	return FALSE;
 }
 
-// Attempt a server conversation and return an array describing the outcome:
-//
-// 'result' => 'CAN' : connect (or search) failed completely
-//
-// 'result' => 'NAK' : server replied and denied access (or search returned odd data)
-//
-// 'result' => 'ACK' : server replied and cleared access, there were no search errors
-// 'displayed_name' : a string built according to LDAP displayname_attrs option
-// 'memberof' => filtered list of all LDAP groups the user belongs to
-//
 // Calling ldap_connect() with a host and a port is deprecated since PHP 8.3,
 // build an LDAP URI unless the server is already given as one.
 function LDAPServerURI ($server, $port)
@@ -498,6 +491,16 @@ function LDAPServerURI ($server, $port)
 	return "ldap://{$server}:{$port}";
 }
 
+// Attempt a server conversation and return an array describing the outcome:
+//
+// 'result' => 'CAN' : connect (or search) failed completely
+//
+// 'result' => 'NAK' : server replied and denied access (or search returned odd data)
+//
+// 'result' => 'ACK' : server replied and cleared access, there were no search errors
+// 'displayed_name' : a string built according to LDAP displayname_attrs option
+// 'memberof' => filtered list of all LDAP groups the user belongs to
+//
 function queryLDAPServer ($username, $password)
 {
 	global $LDAP_options;
@@ -529,7 +532,7 @@ function queryLDAPServer ($username, $password)
 			continue;
 		ldap_set_option ($connect, LDAP_OPT_NETWORK_TIMEOUT, array_fetch ($LDAP_options, 'server_alive_timeout', 2));
 		// If use_tls configuration option is set, then try establish TLS session instead of ldap_bind
-		if (isset ($LDAP_options['use_tls']) && $LDAP_options['use_tls'] >= 1)
+		if ($LDAP_options['use_tls'] >= 1 && 0 !== stripos ($server, 'ldaps://'))
 		{
 			$tls = ldap_start_tls ($connect);
 			if ($LDAP_options['use_tls'] >= 2 && $tls == FALSE)
@@ -597,7 +600,7 @@ function queryLDAPServer ($username, $password)
 					RackTablesError::MISCONFIGURED
 				);
 		}
-		$results = @ldap_search ($connect, $LDAP_options['search_dn'], '(' . $LDAP_options['search_attr'] . "={$username})", array("dn"));
+		$results = @ldap_search ($connect, $LDAP_options['search_dn'], '(' . $LDAP_options['search_attr'] . '=' . ldap_escape ($username, '', LDAP_ESCAPE_FILTER) . ')', array("dn"));
 		if ($results === FALSE)
 			return array ('result' => 'CAN');
 		if (@ldap_count_entries ($connect, $results) != 1)
@@ -638,7 +641,7 @@ function queryLDAPServer ($username, $password)
 		(
 			$connect,
 			$LDAP_options['search_dn'],
-			'(' . $LDAP_options['search_attr'] . "={$username})",
+			'(' . $LDAP_options['search_attr'] . '=' . ldap_escape ($username, '', LDAP_ESCAPE_FILTER) . ')',
 			array_merge (array ($LDAP_options['group_attr']), explode (' ', $LDAP_options['displayname_attrs']))
 		);
 		if (@ldap_count_entries ($connect, $results) != 1)
