@@ -1070,7 +1070,8 @@ function createUser ()
 	assertStringArg ('realname', TRUE);
 	assertStringArg ('password');
 	$username = $_REQUEST['username'];
-	$password = sha1 ($_REQUEST['password']);
+	// The HTTP authentication checks the password as typed, not HTML-escaped.
+	$password = makePasswordHash (genericAssertion ('password', 'string'));
 	$user_id = commitCreateUserAccount ($username, $_REQUEST['realname'], $password);
 	if (isset ($_REQUEST['taglist']))
 		produceTagsForNewRecord ('user', $_REQUEST['taglist'], $user_id);
@@ -1090,7 +1091,8 @@ function updateUser ()
 		genericAssertion ('user_id', 'natural'),
 		$username,
 		$_REQUEST['realname'],
-		sha1 (genericAssertion ('password', 'string0'))
+		// An empty field keeps the current password, as the form says.
+		'' == ($password = genericAssertion ('password', 'string0')) ? '' : makePasswordHash ($password)
 	);
 	showFuncMessage (__FUNCTION__, 'OK', array ($username));
 }
@@ -2167,17 +2169,17 @@ function changeMyPassword ()
 	assertStringArg ('newpassword2');
 	$remote_userid = getUserIDByUsername ($remote_username);
 	$userinfo = spotEntity ('user', $remote_userid);
-	if ($userinfo['user_password_hash'] != sha1 ($_REQUEST['oldpassword']))
+	if (! verifyPasswordHash (genericAssertion ('oldpassword', 'string'), $userinfo['user_password_hash']))
 	{
 		showFuncMessage (__FUNCTION__, 'ERR2');
 		return;
 	}
-	if ($_REQUEST['newpassword1'] != $_REQUEST['newpassword2'])
+	if (! hash_equals (genericAssertion ('newpassword1', 'string'), genericAssertion ('newpassword2', 'string')))
 	{
 		showFuncMessage (__FUNCTION__, 'ERR3');
 		return;
 	}
-	commitUpdateUserAccount ($remote_userid, $userinfo['user_name'], $userinfo['user_realname'], sha1 ($_REQUEST['newpassword1']));
+	commitUpdateUserAccount ($remote_userid, $userinfo['user_name'], $userinfo['user_realname'], makePasswordHash (genericAssertion ('newpassword1', 'string')));
 	showFuncMessage (__FUNCTION__, 'OK');
 }
 

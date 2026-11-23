@@ -63,7 +63,8 @@ if ($rackCodeCache == NULL || $rackCodeCache == '')
 }
 else
 {
-	$rackCode = unserialize (base64_decode ($rackCodeCache));
+	// The parse tree holds arrays and scalars only, never instantiate objects.
+	$rackCode = unserialize (base64_decode ($rackCodeCache), array ('allowed_classes' => FALSE));
 	if ($rackCode === FALSE) // invalid cache
 	{
 		saveScript ('RackCodeCache', '');

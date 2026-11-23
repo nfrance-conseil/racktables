@@ -3355,8 +3355,8 @@ WHERE
 // throws an exception if error occurred
 function commitCreateUserAccount ($username, $realname, $password_hash)
 {
-	if (! preg_match ('/^[0-9a-f]{40}$/', $password_hash))
-		throw new InvalidArgException ('password_hash', $password_hash, 'not a 20-octet hex string');
+	if (! isValidPasswordHash ($password_hash))
+		throw new InvalidArgException ('password_hash', '(hidden)', 'not a password hash');
 	usePreparedInsertBlade
 	(
 		'UserAccount',
@@ -3382,8 +3382,8 @@ function commitUpdateUserAccount ($id, $new_username, $new_realname, $new_passwo
 	);
 	if ($new_password_hash != '')
 	{
-		if (! preg_match ('/^[0-9a-f]{40}$/', $new_password_hash))
-			throw new InvalidArgException ('new_password_hash', $new_password_hash, 'not a 20-octet hex string');
+		if (! isValidPasswordHash ($new_password_hash))
+			throw new InvalidArgException ('new_password_hash', '(hidden)', 'not a password hash');
 		$set_columns['user_password_hash'] = $new_password_hash;
 	}
 	$userinfo = spotEntity ('user', $id);
@@ -4913,14 +4913,14 @@ function fetchLDAPCacheRow ($username, $extrasql = '')
 	$result = usePreparedSelectBlade
 	(
 		'SELECT TIMESTAMPDIFF(SECOND, first_success, now()) AS success_age, ' .
-		'TIMESTAMPDIFF(SECOND, last_retry, now()) AS retry_age, displayed_name, memberof, successful_hash ' .
+		'TIMESTAMPDIFF(SECOND, last_retry, now()) AS retry_age, presented_username, displayed_name, memberof, successful_hash ' .
 		'FROM LDAPCache WHERE presented_username = ? ' . $extrasql,
 		array ($username)
 	);
 	$row = $result->fetch (PDO::FETCH_ASSOC);
 	if ($row)
 	{
-		$members = unserialize (base64_decode ($row['memberof']));
+		$members = unserialize (base64_decode ($row['memberof']), array ('allowed_classes' => FALSE));
 		$row['memberof'] = is_array ($members) ? $members : array();
 	}
 	return $row;

@@ -63,6 +63,38 @@ function pdoMySQLAttr ($name)
 	return constant (class_exists ('Pdo\\Mysql') ? "Pdo\\Mysql::ATTR_{$name}" : "PDO::MYSQL_ATTR_{$name}");
 }
 
+// Password hashes: Argon2id when available (bcrypt otherwise). Hashes made by
+// earlier versions (unsalted SHA-1, 40 hex digits) are still accepted, then
+// replaced on the next successful login.
+function makePasswordHash ($password)
+{
+	return password_hash ($password, defined ('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT);
+}
+
+function isLegacyPasswordHash ($hash)
+{
+	return 1 === preg_match ('/^[0-9a-f]{40}$/D', $hash);
+}
+
+function verifyPasswordHash ($password, $hash)
+{
+	$hash = (string) $hash;
+	if (isLegacyPasswordHash ($hash))
+		return hash_equals ($hash, sha1 ($password));
+	return $hash != '' && password_verify ($password, $hash);
+}
+
+function passwordHashNeedsRehash ($hash)
+{
+	return isLegacyPasswordHash ($hash) ||
+		password_needs_rehash ($hash, defined ('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT);
+}
+
+function isValidPasswordHash ($hash)
+{
+	return isLegacyPasswordHash ($hash) || password_get_info ($hash)['algo'] !== NULL;
+}
+
 // (re)connects to DB, stores PDO object in $dbxlink global var
 function connectDB()
 {

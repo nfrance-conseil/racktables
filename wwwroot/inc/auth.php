@@ -385,12 +385,12 @@ function authenticated_via_ldap_nocache ($username, $password, &$ldap_displaynam
 
 // check that LDAP cache row contains correct password and is not expired
 // if check_for_refreshing = TRUE, also checks that cache row does not need refreshing
-function isLDAPCacheValid ($cache_row, $password_hash, $check_for_refreshing = FALSE)
+function isLDAPCacheValid ($cache_row, $password, $check_for_refreshing = FALSE)
 {
 	global $LDAP_options;
 	return
 		is_array ($cache_row) &&
-		$cache_row['successful_hash'] === $password_hash &&
+		isLDAPCachedPassword ($cache_row, $password) &&
 		$cache_row['success_age'] < $LDAP_options['cache_expiry'] &&
 		(
 			// There are two confidence levels of cache hits: "certain" and "uncertain". In either case
@@ -405,6 +405,18 @@ function isLDAPCacheValid ($cache_row, $password_hash, $check_for_refreshing = F
 		);
 }
 
+function isLDAPCachedPassword ($cache_row, $password)
+{
+	$hash = $cache_row['successful_hash'];
+	if (isPasswordCheckCached ('ldap', $cache_row['presented_username'], $password, $hash))
+		return TRUE;
+	// Legacy SHA-1 rows are not trusted any more: the LDAP server is queried again.
+	if (isLegacyPasswordHash ($hash) || ! verifyPasswordHash ($password, $hash))
+		return FALSE;
+	cachePasswordCheck ('ldap', $cache_row['presented_username'], $password, $hash);
+	return TRUE;
+}
+
 // Idem, but consider existing data in cache and modify/discard it, when necessary.
 // Remember to have releaseLDAPCache() called before any return statement.
 // Perform cache maintenance on each update.
@@ -413,17 +425,16 @@ function authenticated_via_ldap_cache ($username, $password, &$ldap_displayname)
 	global $LDAP_options, $auto_tags;
 
 	$user_data = array(); // fill auto_tags and ldap_displayname from this array
-	$password_hash = sha1 ($password);
 
 	// first try to get cache row without locking it (quick way)
 	$cache_row = fetchLDAPCacheRow ($username);
-	if (isLDAPCacheValid ($cache_row, $password_hash, TRUE))
+	if (isLDAPCacheValid ($cache_row, $password, TRUE))
 		$user_data = $cache_row; // cache HIT
 	else
 	{
 		// cache miss or expired. Try to lock LDAPCache for $username
 		$cache_row = acquireLDAPCache ($username);
-		if (isLDAPCacheValid ($cache_row, $password_hash, TRUE))
+		if (isLDAPCacheValid ($cache_row, $password, TRUE))
 			$user_data = $cache_row; // cache HIT, but with DB lock
 		else
 		{
@@ -431,7 +442,9 @@ function authenticated_via_ldap_cache ($username, $password, &$ldap_displayname)
 			switch ($ldap_answer['result'])
 			{
 			case 'ACK':
+				$password_hash = makePasswordHash ($password);
 				replaceLDAPCacheRecord ($username, $password_hash, $ldap_answer['displayed_name'], $ldap_answer['memberof']);
+				cachePasswordCheck ('ldap', $username, $password, $password_hash);
 				$user_data = $ldap_answer;
 				break;
 			case 'NAK': // The record isn't valid any more.
@@ -439,7 +452,7 @@ function authenticated_via_ldap_cache ($username, $password, &$ldap_displayname)
 				deleteLDAPCacheRecord ($username);
 				break;
 			case 'CAN': // LDAP query failed, use old value till next retry
-				if (isLDAPCacheValid ($cache_row, $password_hash, FALSE))
+				if (isLDAPCacheValid ($cache_row, $password, FALSE))
 				{
 					touchLDAPCacheRecord ($username);
 					$user_data = $cache_row;
@@ -660,5 +673,49 @@ function authenticated_via_database ($userinfo, $password)
 {
 	if (!isset ($userinfo['user_id'])) // not a local account
 		return FALSE;
-	return $userinfo['user_password_hash'] == sha1 ($password);
+	$hash = (string) $userinfo['user_password_hash'];
+	if (isPasswordCheckCached ('database', $userinfo['user_name'], $password, $hash))
+		return TRUE;
+	if (! verifyPasswordHash ($password, $hash))
+		return FALSE;
+	if (passwordHashNeedsRehash ($hash))
+	{
+		$hash = makePasswordHash ($password);
+		usePreparedUpdateBlade ('UserAccount', array ('user_password_hash' => $hash), array ('user_id' => $userinfo['user_id']));
+	}
+	cachePasswordCheck ('database', $userinfo['user_name'], $password, $hash);
+	return TRUE;
+}
+
+// HTTP basic authentication sends the password with every request, and a
+// password hash is deliberately slow to verify. After a successful check,
+// remember in the session a keyed digest of the credentials, bound to the
+// stored hash (a password change invalidates it), to skip later checks.
+function passwordCheckDigest ($scope, $username, $password, $hash)
+{
+	if (! isset ($_SESSION['auth_salt']))
+		return NULL;
+	return hash_hmac ('sha256', "{$scope}\0{$username}\0{$password}", $_SESSION['auth_salt'] . $hash);
+}
+
+function isPasswordCheckCached ($scope, $username, $password, $hash)
+{
+	if (isCLIMode())
+		return FALSE;
+	startSession();
+	$digest = passwordCheckDigest ($scope, $username, $password, $hash);
+	$ret = $digest !== NULL && isset ($_SESSION['auth_digest']) && hash_equals ($_SESSION['auth_digest'], $digest);
+	session_commit();
+	return $ret;
+}
+
+function cachePasswordCheck ($scope, $username, $password, $hash)
+{
+	if (isCLIMode())
+		return;
+	startSession();
+	if (! isset ($_SESSION['auth_salt']))
+		$_SESSION['auth_salt'] = bin2hex (random_bytes (32));
+	$_SESSION['auth_digest'] = passwordCheckDigest ($scope, $username, $password, $hash);
+	session_commit();
 }

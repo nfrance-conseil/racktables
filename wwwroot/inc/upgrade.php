@@ -193,6 +193,20 @@ ENDOFTEXT
 As of this release the minimum supported PHP version is 7.0.
 ENDOFTEXT
 ,
+
+	'0.22.1' => <<<'ENDOFTEXT'
+As of this release the supported PHP versions are 8.2 to 8.5.
+
+Passwords of local accounts are now stored with password_hash() (Argon2id
+when available) instead of unsalted SHA-1. Existing SHA-1 hashes keep working
+and are replaced at the next successful login of each user. The LDAP cache is
+emptied by the upgrade for the same reason.
+
+Requests that modify data now require an anti-CSRF token: scripts that used
+to send such requests directly to index.php?module=redirect must first fetch
+a page to obtain the token of their session.
+ENDOFTEXT
+,
 );
 
 // This function currently implements a convention that to upgrade any release R1
@@ -1379,6 +1393,10 @@ INSERT INTO `Config` (varname, varvalue, vartype, emptyok, is_hidden, is_userdef
 			$query[] = "UPDATE Config SET varvalue = '0.22.0' WHERE varname = 'DB_VERSION'";
 			break;
 		case '0.22.1':
+			// room for password_hash() results (SHA-1 hashes are rehashed at login)
+			$query[] = "ALTER TABLE UserAccount MODIFY user_password_hash varchar(255) DEFAULT NULL";
+			$query[] = "DELETE FROM LDAPCache";
+			$query[] = "ALTER TABLE LDAPCache MODIFY successful_hash varchar(255) NOT NULL";
 			$query[] = "UPDATE Config SET varvalue = '0.22.1' WHERE varname = 'DB_VERSION'";
 			break;
 		case 'dictionary':
@@ -1431,11 +1449,11 @@ function executeUpgradeBatch ($batchid)
 function authenticate_admin ($username, $password)
 {
 	global $dbxlink;
-	$prepared = $dbxlink->prepare ('SELECT COUNT(*) FROM UserAccount WHERE user_id=1 AND user_name=? AND user_password_hash=?');
-	if (!$prepared->execute (array ($username, sha1 ($password))))
+	$prepared = $dbxlink->prepare ('SELECT user_password_hash FROM UserAccount WHERE user_id=1 AND user_name=?');
+	if (!$prepared->execute (array ($username)))
 		die ('SQL query failed in ' . __FUNCTION__);
 	$rows = $prepared->fetchAll (PDO::FETCH_NUM);
-	return $rows[0][0] == 1;
+	return count ($rows) == 1 && verifyPasswordHash ($password, $rows[0][0]);
 }
 
 // Database version detector. Should behave corretly on any

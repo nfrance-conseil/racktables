@@ -480,11 +480,11 @@ function init_database_dynamic ()
 	}
 	else
 	{
-		// Never send cleartext password over the wire.
-		$hash = sha1 ($_REQUEST['password']);
-		$query = "INSERT INTO `UserAccount` (`user_id`, `user_name`, `user_password_hash`, `user_realname`) " .
-			"VALUES (1,'admin','{$hash}','RackTables Administrator')";
-		$result = $dbxlink->exec ($query);
+		$dbxlink->prepare
+		(
+			"INSERT INTO `UserAccount` (`user_id`, `user_name`, `user_password_hash`, `user_realname`) " .
+			"VALUES (1, 'admin', ?, 'RackTables Administrator')"
+		)->execute (array (makePasswordHash ($_REQUEST['password'])));
 		echo "Administrator password has been set successfully.<br>";
 		return TRUE;
 	}
@@ -796,7 +796,7 @@ function get_pseudo_file ($name)
 
 		$query[] = "CREATE TABLE `LDAPCache` (
   `presented_username` char(64) NOT NULL,
-  `successful_hash` char(40) NOT NULL,
+  `successful_hash` varchar(255) NOT NULL,
   `first_success` timestamp NOT NULL default CURRENT_TIMESTAMP,
   `last_retry` timestamp NULL default NULL,
   `displayed_name` char(128) default NULL,
@@ -1099,7 +1099,7 @@ function get_pseudo_file ($name)
 		$query[] = "CREATE TABLE `UserAccount` (
   `user_id` int(10) unsigned NOT NULL auto_increment,
   `user_name` char(64) NOT NULL default '',
-  `user_password_hash` char(40) default NULL,
+  `user_password_hash` varchar(255) default NULL,
   `user_realname` char(64) default NULL,
   PRIMARY KEY  (`user_id`),
   UNIQUE KEY `user_name` (`user_name`)
