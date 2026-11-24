@@ -217,6 +217,12 @@ The text typed in the forms is now stored as is and escaped when displayed
 (it used to be stored HTML-escaped in some places). The upgrade decodes the
 names, labels, comments and user names stored that way; check the values that
 legitimately contained HTML entities such as "&amp;".
+
+jQuery is upgraded from 1.4.4 to 3.7.1 and jQuery UI from 1.8 to 1.14.1. The
+pages are sent with a strict Content-Security-Policy: inline event handlers
+(onclick=...) and javascript: URLs no longer run, local plugins must attach
+their handlers from JavaScript files, from addJSText() blocks (they carry the
+nonce of the policy) or with the data-rt-click attributes of getJSEventAttrs().
 ENDOFTEXT
 ,
 );

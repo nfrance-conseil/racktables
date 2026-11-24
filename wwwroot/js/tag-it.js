@@ -122,7 +122,7 @@
                 this.options.singleFieldNode = this.element;
                 this.element.css('display', 'none');
             } else {
-                this.tagList = this.element.find('ul, ol').andSelf().last();
+                this.tagList = this.element.find('ul, ol').addBack().last();
             }
             if (this.options.tagInput)
                 this.tagInput = this.options.tagInput;
@@ -155,7 +155,7 @@
             }
 
             if (this.options.showAutocompleteOnFocus) {
-                this.tagInput.focus(function(event, ui) {
+                this.tagInput.on('focus', function(event, ui) {
                     that._showAutocomplete();
                 });
 
@@ -165,12 +165,12 @@
             }
 
             // Bind autocomplete.source callback functions to this context.
-            if ($.isFunction(this.options.autocomplete.source)) {
+            if (typeof (this.options.autocomplete.source) === 'function') {
                 this.options.autocomplete.source = $.proxy(this.options.autocomplete.source, this);
             }
 
             // DEPRECATED.
-            if ($.isFunction(this.options.tagSource)) {
+            if (typeof (this.options.tagSource) === 'function') {
                 this.options.tagSource = $.proxy(this.options.tagSource, this);
             }
 
@@ -179,7 +179,7 @@
                 //.addClass('ui-widget ui-widget-content ui-corner-all')
                 // Create the input field.
                 //.append($('<li class="tagit-new"></li>'))
-                .click(function(e) {
+                .on('click', function(e) {
                     var target = $(e.target);
                     if (target.hasClass('tagit-label')) {
                         var tag = target.closest('.tagit-choice');
@@ -190,7 +190,7 @@
                         // Sets the focus() to the input field, if the user
                         // clicks anywhere inside the UL. This is needed
                         // because the input field needs to be of a small size.
-                        that.tagInput.focus();
+                        that.tagInput.trigger('focus');
                     }
                 });
 
@@ -225,7 +225,7 @@
 
             // Events.
             this.tagInput
-                .keydown(function(event) {
+                .on('keydown', function(event) {
                     // Backspace is not detected within a keypress, so it must use keydown.
                     if (that.options.backspaceRemove && event.which == $.ui.keyCode.BACKSPACE && that.tagInput.val() === '') {
                         var tag = that._lastTag();
@@ -253,11 +253,11 @@
                             event.which == $.ui.keyCode.SPACE &&
                             that.options.allowSpaces !== true &&
                             (
-                                $.trim(that.tagInput.val()).replace( /^s*/, '' ).charAt(0) != '"' ||
+                                String(that.tagInput.val()).trim().replace( /^s*/, '' ).charAt(0) != '"' ||
                                 (
-                                    $.trim(that.tagInput.val()).charAt(0) == '"' &&
-                                    $.trim(that.tagInput.val()).charAt($.trim(that.tagInput.val()).length - 1) == '"' &&
-                                    $.trim(that.tagInput.val()).length - 1 !== 0
+                                    String(that.tagInput.val()).trim().charAt(0) == '"' &&
+                                    String(that.tagInput.val()).trim().charAt(String(that.tagInput.val()).trim().length - 1) == '"' &&
+                                    String(that.tagInput.val()).trim().length - 1 !== 0
                                 )
                             )
                         )
@@ -272,7 +272,7 @@
                             that.createTag(that._cleanedInput());
                         }
                     }
-                }).blur(function(e){
+                }).on('blur', function(e){
                     // Create a tag when the element loses focus.
                     // If autocomplete is enabled and suggestion was clicked, don't add it.
                     if (!that.tagInput.data('autocomplete-open')) {
@@ -295,9 +295,9 @@
                 // while tagSource is left null by default.
                 autocompleteOptions.source = this.options.tagSource || autocompleteOptions.source;
 
-                this.tagInput.autocomplete(autocompleteOptions).bind('autocompleteopen.tagit', function(event, ui) {
+                this.tagInput.autocomplete(autocompleteOptions).on('autocompleteopen.tagit', function(event, ui) {
                     that.tagInput.data('autocomplete-open', true);
-                }).bind('autocompleteclose.tagit', function(event, ui) {
+                }).on('autocompleteclose.tagit', function(event, ui) {
                     that.tagInput.data('autocomplete-open', false);
                 });
 
@@ -308,8 +308,8 @@
         destroy: function() {
             $.Widget.prototype.destroy.call(this);
 
-            this.element.unbind('.tagit');
-            this.tagList.unbind('.tagit');
+            this.element.off('.tagit');
+            this.tagList.off('.tagit');
 
             this.tagInput.removeData('autocomplete-open');
 
@@ -354,7 +354,7 @@
 
         _cleanedInput: function() {
             // Returns the contents of the tag input, cleaned and ready to be passed to createTag
-            return $.trim(this.tagInput.val().replace(/^"(.*)"$/, '$1'));
+            return String(this.tagInput.val().replace(/^"(.*)"$/, '$1')).trim();
         },
 
         _lastTag: function() {
@@ -430,7 +430,7 @@
             if (this.options.caseSensitive) {
                 return str;
             }
-            return $.trim(str.toLowerCase());
+            return String(str.toLowerCase()).trim();
         },
 
         _effectExists: function(name) {
@@ -439,7 +439,7 @@
 
         createTag: function(value, additionalClass, duringInitialization, additionalTitle) {
             var that = this;
-            value = $.trim(value);
+            value = String(value).trim();
 
             if(this.options.preprocessTag) {
                 value = this.options.preprocessTag(value);
@@ -468,7 +468,7 @@
             }
 
             var label = $(this.options.onTagClicked ? '<a class="tagit-label"></a>' : '<span class="tagit-label"></span>').text(value);
-            label.attr('title', additionalTitle);
+            label.attr('title', additionalTitle || '');
             // Create tag.
             var tag = $('<li></li>')
                 //.addClass('tagit-choice ui-widget-content ui-state-default ui-corner-all')
@@ -485,7 +485,7 @@
                 var removeTag = $('<a><span class="text-icon">\xd7</span></a>') // \xd7 is an X
                     .addClass('tagit-close')
                     .append(removeTagIcon)
-                    .click(function(e) {
+                    .on('click', function(e) {
                         // Removes a tag when the little 'x' is clicked.
                         that.removeTag(tag);
                     });
@@ -494,8 +494,7 @@
 
             // Unless options.singleField is set, each tag has a hidden input field inline.
             if (!this.options.singleField) {
-                var escapedValue = label.html();
-                tag.append('<input type="hidden" style="display:none;" value="' + escapedValue + '" name="' + this.options.fieldName + '" />');
+                tag.append($('<input type="hidden" style="display:none;" />').val(value).attr('name', this.options.fieldName));
             }
 
             if (this._trigger('beforeTagAdded', null, {

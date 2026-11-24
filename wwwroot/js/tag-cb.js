@@ -14,17 +14,17 @@ var tagShortList = {};
 $(document).ready (function () {
 	if (! enableNegation)
 		return;
-	$('.tag-cb').click(function (event) {
+	$('.tag-cb').on('click', function (event) {
 		cbClick(event, false);
 	});
 	$('.tag-cb').closest('label')
-		.mousedown(function(){return false})
-		.click(function (event) {
+		.on('mousedown', function(){return false})
+		.on('click', function (event) {
 			cbClick(event, true);
 			return false;
 		});
-	$('input[name=andor]').click(function (event) {
-		if ($('.tag-cb:checked').size() != 0 && event.target.value == 'and') {
+	$('input[name=andor]').on('click', function (event) {
+		if ($('.tag-cb:checked').length != 0 && event.target.value == 'and') {
 			$(event.target).closest('form')[0].submit();
 		}
 	});
@@ -41,7 +41,7 @@ function cbClick (event, bInvert) {
 	if (cb.length != 1)
 		return;
 	var tagId = cb.attr('value');
-	var checked = cb.attr('checked');
+	var checked = cb.prop('checked');
 	if (bInvert)
 		checked = ! checked;
 	if ((event.ctrlKey || event.metaKey) && ! td.hasClass('inverted') && checked) {
@@ -57,8 +57,8 @@ function cbClick (event, bInvert) {
 		td.removeClass('inverted');
 	}
 	if (bInvert)
-		cb.attr('checked', checked ? 'checked' : '');
-	cb.focus();
+		cb.prop('checked', !! checked);
+	cb.trigger('focus');
 
 	if (enableSubmitOnClick) {
 		var and_check = $('input[name=andor][value=and]')[0];

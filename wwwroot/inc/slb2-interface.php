@@ -348,7 +348,7 @@ function renderSLBTriplets2 ($cell, $editable = FALSE, $hl_ip = NULL)
 			'data-vs_id' => $slb['vs_id'],
 			'data-rspool_id' => $slb['rspool_id'],
 		));
-		echo '<td><a href="#" onclick="' . "slb_config_preview(event, {$slb['object_id']}, {$slb['vs_id']}, {$slb['rspool_id']}); return false" . '">' . getImageHREF ('Zoom', 'config preview') . '</a></td>';
+		echo '<td><a href="#"' . getJSEventAttrs ('click', 'slb_config_preview', array ($slb['object_id'], $slb['vs_id'], $slb['rspool_id'])) . '>' . getImageHREF ('Zoom', 'config preview') . '</a></td>';
 		foreach (array_keys ($headers) as $realm)
 		{
 			if ($realm == $cell['realm'])

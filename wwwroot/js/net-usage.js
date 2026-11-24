@@ -1,5 +1,5 @@
 $(document).ready (function () {
-	$('div.net-usage.pending').click(function(e) {
+	$('div.net-usage.pending').on('click', function(e) {
 		var div = this;
 		$.get(
 			'index.php',
@@ -11,7 +11,7 @@ $(document).ready (function () {
 			function (data, textStatus, jqXHR) {
 				$(div)
 					.removeClass('pending')
-					.unbind(e)
+					.off(e)
 					.replaceWith(data);
 			}
 		)

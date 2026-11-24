@@ -297,11 +297,11 @@ function renderLocationFilterPortlet ()
 		{
 			echo "<div class=tagbox style='text-align:left; padding-left:" . ($level * 16) . "px;'>";
 			$checked = (! isset ($_SESSION['locationFilter']) || in_array ($location['id'], $_SESSION['locationFilter'])) ? 'checked' : '';
-			echo "<label><input type=checkbox name='location_id[]' class={$level} value='{$location['id']}'{$checked} onClick=checkAll(this)>" . stringForLabel ($location['name'], 0);
+			echo "<label><input type=checkbox name='location_id[]' class={$level} value='{$location['id']}'{$checked}" . getJSEventAttrs ('click', 'checkAll') . '>' . stringForLabel ($location['name'], 0);
 			echo '</label>';
 			if ($location['kidc'])
 			{
-				echo "<a id='lfa" . $location['id'] . "' onclick=\"expand('{$location['id']}')\" href\"#\" > - </a>";
+				echo "<a id='lfa" . $location['id'] . "' href='#'" . getJSEventAttrs ('click', 'expand', array ($location['id'])) . '> - </a>';
 				echo "<div id='lfd" . $location['id'] . "'>";
 				$self ($location['kids'], $level + 1);
 				echo '</div>';
@@ -311,7 +311,8 @@ function renderLocationFilterPortlet ()
 	}
 
 	addJSText (<<<'END'
-function checkAll(bx) {
+function checkAll() {
+	var bx = this;
 	for (var tbls=document.getElementsByTagName("table"), i=tbls.length; i--;)
 		if (tbls[i].id == "locationFilter") {
 			var bxs=tbls[i].getElementsByTagName("input");
@@ -327,7 +328,7 @@ function checkAll(bx) {
 		}
 }
 
-function collapseAll(bx) {
+function collapseAll() {
 	for (var tbls=document.getElementsByTagName("table"), i=tbls.length; i--;)
 		if (tbls[i].id == "locationFilter") {
 			var bxs=tbls[i].getElementsByTagName("div");
@@ -358,12 +359,14 @@ function expand(id) {
 	var iconid = document.getElementById("lfa" + id);
 	if (divid.style.display == 'none') {
 		divid.style.display = 'block';
-		iconid.innerHTML = ' - ';
+		iconid.textContent = ' - ';
 	} else {
 		divid.style.display = 'none';
-		iconid.innerHTML = ' + ';
+		iconid.textContent = ' + ';
 	}
 }
+
+$(document).ready (collapseAll);
 END
 	); // addJSText()
 	startPortlet ('Location filter');
@@ -379,8 +382,7 @@ END;
 	if (count ($locationlist))
 	{
 		echo "<tr><td class=tagbox style='padding-left: 0px'><label>";
-		echo "<input type=checkbox name='location'  onClick=checkAll(this)> Toggle all";
-		echo "<img src=?module=chrome&uri=pix/1x1t.gif onLoad=collapseAll(this)>"; // dirty hack to collapse all when page is displayed
+		echo "<input type=checkbox name='location'" . getJSEventAttrs ('click', 'checkAll') . '> Toggle all';
 		echo "</label></td></tr>\n";
 		echo "<tr><td class=tagbox><hr>\n";
 		renderLocationCheckbox (treeFromList (addTraceToNodes ($locationlist)));
@@ -591,10 +593,10 @@ function renderRackspaceLocationEditor ()
 	addJSText (<<<'JSTXT'
 	function locationeditor_showselectbox(e) {
 		$(this).load('index.php', {module: 'ajax', ac: 'get-location-select', locationid: this.id});
-		$(this).unbind('mousedown', locationeditor_showselectbox);
+		$(this).off('mousedown', locationeditor_showselectbox);
 	}
 	$(document).ready(function () {
-		$('select.locationlist-popup').bind('mousedown', locationeditor_showselectbox);
+		$('select.locationlist-popup').on('mousedown', locationeditor_showselectbox);
 	});
 JSTXT
 	); // addJSText()
@@ -1325,9 +1327,9 @@ function renderGridForm ($rack_id, $filter, $header, $submit, $state1, $state2)
 	echo "<p style='color: red; margin-top:0px'>{$read_only_text}</p>\n";
 	echo "<table class=rack id={$table_id} border=0 cellspacing=0 cellpadding=1>\n";
 	echo "<tr><th width='10%'>&nbsp;</th>";
-	echo "<th width='20%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '0', {$rackData['height']})\">Front</a></th>";
-	echo "<th width='50%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '1', {$rackData['height']})\">Interior</a></th>";
-	echo "<th width='20%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '2', {$rackData['height']})\">Back</a></th></tr>\n";
+	echo "<th width='20%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 0, $rackData['height'])) . ">Front</a></th>";
+	echo "<th width='50%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 1, $rackData['height'])) . ">Interior</a></th>";
+	echo "<th width='20%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 2, $rackData['height'])) . ">Back</a></th></tr>\n";
 	printOpFormIntro ('updateRack');
 	markupAtomGrid ($rackData, $state2);
 	renderAtomGrid ($rackData, $is_ro);
@@ -1630,7 +1632,7 @@ function renderRackMultiSelect ($sname, $racks, $selected)
 			$row_name = $rack['row_name'];
 		$rdata[$row_name][$rack['id']] = $rack['name'];
 	}
-	echo "<select name={$sname} multiple size=" . getConfigVar ('MAXSELSIZE') . " onchange='getElementsByName(\"updateObjectAllocation\")[0].submit()'>\n";
+	echo "<select name={$sname} multiple size=" . getConfigVar ('MAXSELSIZE') . getJSEventAttrs ('change', 'rtSubmitForm', array ('updateObjectAllocation')) . ">\n";
 	$row_names = array_keys ($rdata);
 	natsort ($row_names);
 	foreach ($row_names as $optgroup)
@@ -2269,14 +2271,14 @@ function renderRackSpaceForObject ($object_id)
 		echo "<p style='color: red; margin-top:0px'>{$read_only_text}</p>\n";
 		echo "<table class=rack id={$table_id} border=0 cellspacing=0 cellpadding=1>\n";
 		echo "<tr><th width='10%'>&nbsp;</th>";
-		echo "<th width='20%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '0', {$rackData['height']})\">Front</a></th>";
-		echo "<th width='50%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '1', {$rackData['height']})\">Interior</a></th>";
-		echo "<th width='20%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '2', {$rackData['height']})\">Back</a></th></tr>\n";
+		echo "<th width='20%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 0, $rackData['height'])) . ">Front</a></th>";
+		echo "<th width='50%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 1, $rackData['height'])) . ">Interior</a></th>";
+		echo "<th width='20%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 2, $rackData['height'])) . ">Back</a></th></tr>\n";
 		renderAtomGrid ($rackData, $is_ro);
 		echo "<tr><th width='10%'>&nbsp;</th>";
-		echo "<th width='20%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '0', {$rackData['height']})\">Front</a></th>";
-		echo "<th width='50%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '1', {$rackData['height']})\">Interior</a></th>";
-		echo "<th width='20%'><a href='javascript:;' onclick=\"toggleColumnOfAtoms('{$rack_id}', '2', {$rackData['height']})\">Back</a></th></tr>\n";
+		echo "<th width='20%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 0, $rackData['height'])) . ">Front</a></th>";
+		echo "<th width='50%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 1, $rackData['height'])) . ">Interior</a></th>";
+		echo "<th width='20%'><a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array ($rack_id, 2, $rackData['height'])) . ">Back</a></th></tr>\n";
 		echo "</table>\n<br>\n";
 		// Determine zero-u checkbox status.
 		// If form has been submitted, use form data, otherwise use DB data.
@@ -2286,7 +2288,7 @@ function renderRackSpaceForObject ($object_id)
 			$checked = in_array($rack_id, $parentRacks) ? 'checked' : '';
 		$disabled_text = $is_ro ? ' disabled' : '';
 		echo "<label>Zero-U: <input type=checkbox {$checked} name=zerou_{$rack_id}{$disabled_text}></label>\n<br><br>\n";
-		echo "<input type='button' onclick='uncheckAllAtoms({$rack_id}, {$rackData['height']});' value='Uncheck all'>\n";
+		echo "<input type='button'" . getJSEventAttrs ('click', 'uncheckAllAtoms', array ($rack_id, $rackData['height'])) . " value='Uncheck all'>\n";
 		echo '</center></td>';
 	}
 	echo "</tr></table>";
@@ -3950,7 +3952,7 @@ function renderAtomGrid ($data, $is_ro = FALSE)
 	for ($unit_no = $data['height']; $unit_no > 0; $unit_no--)
 	{
 		$unit_label = inverseRackUnit ($data['height'], $unit_no, $reverse);
-		echo "<tr><th><a href='javascript:;' onclick=\"toggleRowOfAtoms('{$rack_id}','{$unit_no}')\">{$unit_label}</a></th>";
+		echo "<tr><th><a href='#'" . getJSEventAttrs ('click', 'toggleRowOfAtoms', array ($rack_id, $unit_no)) . ">{$unit_label}</a></th>";
 		for ($locidx = 0; $locidx < 3; $locidx++)
 		{
 			$show_checkbox = $data[$unit_no][$locidx]['enabled'];
@@ -4369,7 +4371,7 @@ function renderLivePTR ($id)
 	{
 		echo '<tr><td colspan=3 align=center><input type=submit value="Import selected records"></td><td>';
 		addJSInternal ('js/racktables.js');
-		echo --$box_counter ? "<a href='javascript:;' onclick=\"toggleColumnOfAtoms(1, 1, {$box_counter})\">(toggle selection)</a>" : '&nbsp;';
+		echo --$box_counter ? "<a href='#'" . getJSEventAttrs ('click', 'toggleColumnOfAtoms', array (1, 1, $box_counter)) . '>(toggle selection)</a>' : '&nbsp;';
 		echo '</td></tr>';
 	}
 	echo "</table>";
@@ -4674,11 +4676,11 @@ function textifyCellFilter(target, text)
 {
 	var portlet = $(target).closest ('.portlet');
 	portlet.find ('textarea[name="cfe"]').val (text);
-	portlet.find ('input[type="checkbox"]').attr('checked', '');
-	portlet.find ('input[type="radio"][value="and"]').attr('checked','true');
+	portlet.find ('input[type="checkbox"]').prop('checked', false);
+	portlet.find ('input[type="radio"][value="and"]').prop('checked', true);
 }
 $(document).ready (function () {
-	$('a.textify-cellfilter').click (function () {
+	$('a.textify-cellfilter').on ('click', function () {
 		textifyCellFilter (this, $(this).attr ('data-text'));
 		return false;
 	});
@@ -5909,7 +5911,7 @@ function renderDiscoveredNeighbors ($object_id)
 
 	addJSText (<<<'END'
 $(document).ready(function () {
-	$('#cb-toggle').click(function (event) {
+	$('#cb-toggle').on('click', function (event) {
 		var list = $('.cb-makelink');
 		for (var i in list) {
 			var cb = list[i];

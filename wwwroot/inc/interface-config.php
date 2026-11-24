@@ -181,7 +181,7 @@ ENDJAVASCRIPT
 	echo loadScript ('RackCode') . "</textarea></td></tr>\n";
 	echo "<tr><td class=submit>";
 	echo '<div id="ShowMessage"></div>';
-	echo "<input type='button' value='Verify' onclick='verify();'>";
+	echo "<input type='button' value='Verify'" . getJSEventAttrs ('click', 'verify') . '>';
 	echo "<input type='submit' value='Save' disabled='disabled' id='SaveChanges'>";
 	echo "</td></tr>";
 	echo '</table>';
@@ -977,10 +977,10 @@ function addParentNodeOptionsJS ($prefix, $nodetype)
 <<<"END"
 function {$prefix}_showselectbox(e) {
 	$(this).load('index.php', {module: 'ajax', ac: 'get-parent-node-options', node_type: '{$nodetype}', node_id: this.id});
-	$(this).unbind('mousedown', {$prefix}_showselectbox);
+	$(this).off('mousedown', {$prefix}_showselectbox);
 }
 $(document).ready(function () {
-	$('select.nodelist-popup').bind('mousedown', {$prefix}_showselectbox);
+	$('select.nodelist-popup').on('mousedown', {$prefix}_showselectbox);
 });
 END
 	); // addJSText()
@@ -995,7 +995,7 @@ function getColorSelect($id = 'color', $selected = NULL)
 	else
 		$class = '';
 
-	$ret = "<select tabindex='1' name='color' id='{$id}' onchange='this.className=this.options[this.selectedIndex].className;'{$class}>";
+	$ret = "<select tabindex='1' name='color' id='{$id}'" . getJSEventAttrs ('change', 'rtCopySelectedClass') . "{$class}>";
 	$ret .= '<option value=""></option>';
 
 	$colors = $tag_palette;

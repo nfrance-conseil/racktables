@@ -203,14 +203,21 @@ function renderPopupObjectSelector()
 	assertPermission('object', 'default');
 	$object_id = getBypassValue();
 	echo '<h2>Choose a container:</h2>';
-	echo '<form action="javascript:;">';
+	$base_url = makeHrefProcess (array
+	(
+		'page' => 'object',
+		'tab' => 'edit',
+		'op' => 'linkObjects',
+		'object_id' => $object_id,
+		'child_entity_type' => 'object',
+		'child_entity_id' => $object_id,
+		'parent_entity_type' => 'object',
+	)) . '&parent_entity_id=';
+	echo '<form' . getJSEventAttrs ('submit', 'rtPopupOpenerLocation', array ($base_url, 'parents')) . '>';
 	$parents = findObjectParentCandidates($object_id);
 	printSelect ($parents, array ('name' => 'parents', 'size' => getConfigVar ('MAXSELSIZE')));
 	echo '<br>';
-	echo "<input type=submit value='Proceed' onclick='".
-		"if (getElementById(\"parents\").value != \"\") {".
-		"	opener.location=\"?module=redirect&csrf_token=" . getCSRFToken() . "&page=object&tab=edit&op=linkObjects&object_id={$object_id}&child_entity_type=object&child_entity_id={$object_id}&parent_entity_type=object&parent_entity_id=\"+getElementById(\"parents\").value; ".
-		"	window.close();}'>";
+	echo "<input type=submit value='Proceed'>";
 	echo '</form>';
 }
 
@@ -298,7 +305,7 @@ END
 POIFC = {};
 $js_table
 $(document).ready(function () {
-	$('select.porttype').change(onPortTypeChange);
+	$('select.porttype').on('change', onPortTypeChange);
 	onPortTypeChange();
 });
 function onPortTypeChange() {
@@ -501,8 +508,7 @@ function renderPopupIPv4Selector()
 {
 	assertPermission('ipv4space', 'default');
 	echo '<h2>Choose an IPv4 allocation:</h2><br><br>';
-	echo '<form action="javascript:;">';
-	echo '<input type=hidden id=ip>';
+	echo '<form' . getJSEventAttrs ('submit', 'rtPopupOpenerField', array ('remoteip', 'addresses')) . '>';
 	echo '<select size=' . getConfigVar ('MAXSELSIZE') . ' id=addresses>';
 	$addresses = array();
 	foreach (getAllIPv4Allocations() as $each)
@@ -512,13 +518,10 @@ function renderPopupIPv4Selector()
 	}
 	usort ($addresses, 'sortObjectAddressesAndNames');
 	foreach ($addresses as $address)
-		echo "<option value='{$address['ip']}' onclick='getElementById(\"ip\").value=\"{$address['ip']}\";'>" .
+		echo "<option value='{$address['ip']}'>" .
 		stringForOption ($address['object_name'], 0) . " " . stringForOption ($address['name'], 0) . " {$address['ip']}</option>\n";
 	echo '</select><br><br>';
-	echo "<input type=submit value='Proceed' onclick='".
-		"if (getElementById(\"ip\")!=\"\") {".
-		" opener.document.getElementById(\"remoteip\").value=getElementById(\"ip\").value;".
-		" window.close();}'>";
+	echo "<input type=submit value='Proceed'>";
 	echo '</form>';
 }
 

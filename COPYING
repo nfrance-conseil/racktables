@@ -82,9 +82,10 @@ personal and business use from medievalresources.com
 
 ----------------------8<----------------------8<----------------------
 
-RackTables is shipped with an exact copy of jQuery JavaScript Library v1.4.4
-(http://jquery.com/), which is dual licensed under the MIT and GPL licenses.
-jQuery is copyright (c) 2009 John Resig.
+RackTables is shipped with an exact copy of jQuery JavaScript Library v3.7.1
+and jQuery UI v1.14.1 with its "redmond" theme (https://jquery.com/), which
+are released under the MIT license. jQuery and jQuery UI are copyright OpenJS
+Foundation and other contributors.
 
 ----------------------8<----------------------8<----------------------
 

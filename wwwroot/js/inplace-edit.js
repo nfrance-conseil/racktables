@@ -14,7 +14,7 @@ var btn = null;
 $(document).ready (function() {
 	$(editable_filter).not('.initdone').each (function (i, iSpan) {
 		var container = $('<div class="edit-container"/>')
-			.mouseover(onSpanMouseOver);
+			.on('mouseover', onSpanMouseOver);
 		$(iSpan)
 			.after (container)
 			.detach()
@@ -24,10 +24,10 @@ $(document).ready (function() {
 			.append
 			(
 				$('<div class="empty" style="margin-left: 10px; width:12px; height:12px;"><img class="edit-btn" src="?module=chrome&uri=pix/pencil-icon.png" title="Edit text" /></div>')
-				.click(onPencilClick)
+				.on('click', onPencilClick)
 			);
 	});
-	$(document).mouseover(onBodyMouseOver);
+	$(document).on('mouseover', onBodyMouseOver);
 });
 
 function onSpanMouseOver (event) {
@@ -73,9 +73,9 @@ function onPencilClick (event) {
 	// construct editor form
 	group = $('<span class="reservation-form" />');
 	input = $('<input type="text" />')
-		.val(span.html().replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'))
+		.val(span.text())
 		.css('width', '' + width + 'px')
-		.keydown(
+		.on('keydown',
 			function (event) {
 				var code = event.keyCode ? event.keyCode : event.which;
 				if (code == 13) {
@@ -89,13 +89,13 @@ function onPencilClick (event) {
 	group.append('&nbsp;');
 	btn = $('<img src="?module=chrome&uri=pix/tango-document-save-16x16.png" title="Save changes" />')
 		.css('cursor', 'pointer')
-		.click( onFormSubmit )
+		.on('click',  onFormSubmit )
 		.appendTo(group);
 	span.after(group);
 	input[0].focus();
 	doSetCaretPosition (input[0], input[0].value.length);
 
-	group.click(function(event) { event.stopPropagation();	});
+	group.on('click', function(event) { event.stopPropagation();	});
 	$(document).one('click',
 		function (event) {
 			if (! waiting_response)
@@ -119,7 +119,7 @@ function doSetCaretPosition (input, iCaretPos) {
 
 function onFormSubmit () {
 	var text = input.val();
-	input.attr('disabled', 'true');
+	input.prop('disabled', true);
 	btn.replaceWith('<img src="?module=chrome&uri=pix/ajax-loader.gif" title="Please wait" />');
 	waiting_response = true;
 

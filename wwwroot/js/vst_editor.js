@@ -1,11 +1,11 @@
 // var new_vst_row is set through inline JS script
 
 $(document).ready(function() {
-	$('a.vst-add-rule').click(AddVSTRule)
-	$('a.vst-del-rule').click(RemoveVSTRule)
+	$('a.vst-add-rule').on('click', AddVSTRule)
+	$('a.vst-del-rule').on('click', RemoveVSTRule)
 	$('form#upd')
-		.submit(VSTSubmit)
-		.change(highlightUnsavedVST);
+		.on('submit', VSTSubmit)
+		.on('change', highlightUnsavedVST);
 });
 
 function AddVSTRule(event) {
@@ -16,8 +16,8 @@ function AddVSTRule(event) {
 	else
 		new_tr = tr.clone();
 	tr.after(new_tr);
-	new_tr.find('a.vst-add-rule').click(AddVSTRule);
-	new_tr.find('a.vst-del-rule').click(RemoveVSTRule);
+	new_tr.find('a.vst-add-rule').on('click', AddVSTRule);
+	new_tr.find('a.vst-del-rule').on('click', RemoveVSTRule);
 
 	highlightUnsavedVST();
 	return false;

@@ -577,7 +577,7 @@ function addJSInternal ($uri, $group = 'default')
 		// Prevent infinite recursion.
 		$html_headers['a_core'] = array();
 
-		addJSInternal('js/jquery-1.4.4.min.js', 'a_core');
+		addJSInternal('js/jquery-3.7.1.min.js', 'a_core');
 		addJSInternal('js/racktables.js',       'a_core');
 	}
 
@@ -597,7 +597,7 @@ function addJSText ($text, $group = 'default')
 	if (isUri ($text))
 		throw new InvalidArgException ('text', $text, 'Value passed is most likely a URI and should use addJSInternal()');
 
-	addPageHeader ('<script type="text/javascript">' . "\n" . trim ($text, "\r\n") . "\n</script>\n", $group);
+	addPageHeader ('<script type="text/javascript" nonce="' . getCSPNonce() . '">' . "\n" . trim ($text, "\r\n") . "\n</script>\n", $group);
 }
 
 // CSS styles should be included through this function.
@@ -1008,7 +1008,7 @@ function getOpLink ($params, $title,  $img_name = '', $comment = '', $class = ''
 	}
 	else
 	{
-		$ret = '<a href="#" onclick="return false;"';
+		$ret = '<a href="#"';
 		$class .= ' noclick';
 	}
 	if ($comment != '')
@@ -1038,9 +1038,9 @@ function getPopupLink ($helper, $params, $window_name = '', $img_name = '', $tit
 	if ($class != '')
 		$ret .= ' class="' . htmlspecialchars ($class, ENT_QUOTES) . '"';
 	if ($comment != '')
-		$ret .= 'title="' . htmlspecialchars ($comment, ENT_QUOTES) . '"';
+		$ret .= ' title="' . htmlspecialchars ($comment, ENT_QUOTES) . '"';
 	$href = makeHref (array ('module' => 'popup', 'helper' => $helper) + makePageParams ($params));
-	$ret .= " onclick=\"window.open('$href', '$window_name', '$popup_args'); return false\">";
+	$ret .= getJSEventAttrs ('click', 'rtOpenPopup', array ($href, $window_name, $popup_args)) . '>';
 
 	if ($img_name != '')
 	{
@@ -1103,12 +1103,12 @@ function includeJQueryUI ($do_css = TRUE)
 
 function includeJQueryUIJS()
 {
-	addJSInternal ('js/jquery-ui-1.8.21.min.js');
+	addJSInternal ('js/jquery-ui-1.14.1.min.js');
 }
 
 function includeJQueryUICSS()
 {
-	addCSSInternal ('css/jquery-ui-1.8.22.redmond.css');
+	addCSSInternal ('css/jquery-ui-1.14.1.redmond.css');
 }
 
 function getRenderedIPPortPair ($ip, $port = NULL)
@@ -1190,9 +1190,21 @@ function safeHref ($url)
 	return htmlspecialchars ($url, ENT_QUOTES, 'UTF-8');
 }
 
+// HTML attributes that make the given event (click, change or submit) call
+// the global JavaScript function with the given arguments, see racktables.js.
+function getJSEventAttrs ($event, $function, $args = array())
+{
+	$ret = " data-rt-{$event}='" . htmlspecialchars ($function, ENT_QUOTES, 'UTF-8') . "'";
+	if (count ($args))
+		$ret .= " data-rt-args='" . htmlspecialchars (json_encode ($args), ENT_QUOTES, 'UTF-8') . "'";
+	return $ret;
+}
+
 // Send the HTTP response headers that harden every page: no framing, no MIME
 // sniffing, no leak of URLs (which may carry the anti-CSRF token) to other
 // sites, HTTPS only once used.
+// Scripts run only from the RackTables files and from the inline blocks of
+// addJSText(), which carry the nonce of the response.
 function sendSecurityHeaders()
 {
 	if (isCLIMode() || headers_sent())
@@ -1200,9 +1212,22 @@ function sendSecurityHeaders()
 	header ('X-Content-Type-Options: nosniff');
 	header ('X-Frame-Options: DENY');
 	header ('Referrer-Policy: same-origin');
-	header ("Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'");
+	header
+	(
+		"Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-" . getCSPNonce() . "'; " .
+		"style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; " .
+		"base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+	);
 	if (isHTTPSRequest())
 		header ('Strict-Transport-Security: max-age=31536000');
+}
+
+function getCSPNonce()
+{
+	static $nonce = NULL;
+	if ($nonce === NULL)
+		$nonce = base64_encode (random_bytes (16));
+	return $nonce;
 }
 
 function isHTTPSRequest()

@@ -1225,8 +1225,8 @@ END
 		addJSInternal ('js/racktables.js');
 		printOpFormIntro ('resolve8021QConflicts', array ('mutex_rev' => $vswitch['mutex_rev']));
 		foreach (array ('left', 'asis', 'right') as $pos)
-			echo "<th class=tdcenter><input type=radio name=column_radio value={$pos} " .
-				"onclick=\"checkColumnOfRadios8021Q('i_', {$maxdecisions}, '_{$pos}')\"></th>";
+			echo "<th class=tdcenter><input type=radio name=column_radio value={$pos}" .
+				getJSEventAttrs ('click', 'checkColumnOfRadios8021Q', array ('i_', $maxdecisions, "_{$pos}")) . '></th>';
 	}
 	echo '<th width="40%">running&nbsp;version</th></tr>';
 	$rownum = 0;

@@ -72,20 +72,8 @@ var Validate = {
 				return false;//Don't continue if it is a faluire
 			}
 		}
-		if(ele.getAttribute("equals")) {
-			if(ele.value == eval(ele.getAttribute("equals"))) this.success(ele);//Yes I know, 'evil eval'.
-			else {
-				this.failure(ele);
-				return false;
-			}
-		}
-		if(ele.getAttribute("istrue")) {
-			if(eval(ele.getAttribute("istrue"))) this.success(ele);//Again, eval.
-			else {
-				this.failure(ele);
-				return false;
-			}
-		}
+		// The "equals" and "istrue" checks of the original library used eval(),
+		// which the Content-Security-Policy forbids; RackTables does not use them.
 		return true;
 	},
 	//Show error message on form submission

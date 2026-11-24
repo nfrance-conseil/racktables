@@ -49,7 +49,7 @@ $.fn.optionTree = function(tree, options) {
     };
 
     var setValue = function(name, value) {
-        $("input[name='" + cleanName(name) + "']").val(value).change();
+        $("input[name='" + cleanName(name) + "']").val(value).trigger('change');
     };
 
     // default lazy loading function
@@ -106,9 +106,9 @@ $.fn.optionTree = function(tree, options) {
             // and bind onchange event to recursively call this function
 
             var $select = $("<select>").attr('name',name)
-            .change(function() {
+            .on('change', function() {
                 if (this.options[this.selectedIndex].value !== '') {
-                    if ($.isFunction(options.on_each_change)) {
+                    if (typeof (options.on_each_change) === 'function') {
                       removeNested(name + '_');
                         options.on_each_change.apply(this, [this.options[this.selectedIndex].value, tree]);
                     } else {
@@ -126,8 +126,8 @@ $.fn.optionTree = function(tree, options) {
 
             var text_to_choose = '';
 
-            if (jQuery.isFunction(options.choose)) {
-                var level = $(this).siblings().andSelf().filter('select').length;
+            if (typeof (options.choose) === 'function') {
+                var level = $(this).siblings().addBack().filter('select').length;
                 text_to_choose = options.choose.apply(this, [level]);
             } else if ( options.choose !== '' ) {
                 text_to_choose = options.choose;
@@ -192,7 +192,7 @@ $.fn.optionTree = function(tree, options) {
             });
 
             if (foundPreselect) {
-              $select.change();
+              $select.trigger('change');
             }
 
             if (!foundPreselect && options.preselect_only_once) { // clear preselect on first not-found level

@@ -38,17 +38,17 @@
 		}
 		else {
 			$(this)
-			.bind('mouseenter', setPopup)
-			.bind('mousemove', updatePopupPosition)
-			.bind('mouseleave', hidePopup)
-			.click(stickPopup);
+			.on('mouseenter', setPopup)
+			.on('mousemove', updatePopupPosition)
+			.on('mouseleave', hidePopup)
+			.on('click', stickPopup);
 		}
 		
 		function stickPopup(event) {
 			popup.data("sticked", true);
 			if (freezeHint)
 				freezeHint.hide();
-			$('body').bind('click', function(event) {
+			$('body').on('click', function(event) {
 				if (! (event.target == popup[0] || $(event.target).parents().filter(popup).length))
 				{
 					popup.data("sticked", false);

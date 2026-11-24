@@ -186,7 +186,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 		if (tag_limit != 0 && $(ul).tagit("assignedTags").length < tag_limit) {
 			$(ul).tagit("setStatus", true);
 			if (typeof(expand_all_btn) != 'undefined')
-				$(expand_all_btn).attr('disabled', '');
+				$(expand_all_btn).prop('disabled', false);
 		}
 	}
 
@@ -194,14 +194,14 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 		tag = ui.tagLabel;
 		tag_id = tags_name_to_id[tag];
 		li = ui.tag[0];
-		hidded_value = $(li).find("input[value='" + tag + "']")[0]; // replace tag by tag id
+		hidded_value = $(li).find("input:hidden").filter(function () { return this.value == tag; })[0]; // replace tag by tag id
 		hidded_value.value = tag_id;
 		tag_label = $(ui.tag[0]).find(".tagit-label");
 		tag_classes = generateClass(tag);
 		$.each(tag_classes, function (index, value) {tag_label.addClass(value);});
 		// generate title
 		r = [];
-		r.push(tag_label.attr('title'));
+		r.push(tag_label.attr('title') || '');
 		r.push(getHelp(tag));
 		help_text = $.map(r, function (value, index) {if (value.length > 0) {return value;}});
 		help_text = help_text.join("\n");
@@ -212,7 +212,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 		if (tag_limit != 0 && $(ul).tagit("assignedTags").length >= tag_limit) {
 			$(ul).tagit("setStatus", false);
 			if (typeof(expand_all_btn) != 'undefined')
-				$(expand_all_btn).attr('disabled', 'disabled');
+				$(expand_all_btn).prop('disabled', true);
 		}
 	}
 
@@ -231,7 +231,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 		if ($(this.element).filter('input[data-tagit=yes]').length)
 		{
 			var ul = this.menu.element;
-			ul.children("li:(.ui-menu-item)").addClass("tagit-menu-item");
+			ul.children("li.ui-menu-item").addClass("tagit-menu-item");
 			ul.removeClass("ui-widget-content");
 		}
 	};
@@ -244,7 +244,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 		var help_text = getHelp(tag);
 		var m_div = $('<div style="display: inline-block; vertical-align: middle;"></div>');
 		a.prepend(m_div);
-		m_div.prepend($('<div style="float: left;">' + tag + '</div>'));
+		m_div.prepend($('<div style="float: left;"></div>').text(tag));
 		if (jQuery.inArray(tag, available_tags) < 0) {
 			if (jQuery.inArray(tag, selected) >= 0)
 				help_text = "already assigned";
@@ -264,7 +264,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 		child_count = getTagChild(tag, tags_trace, tags_name_to_id).length;
 		if(child_count > 0)
 			m_div.append('<span style="float: left;" class="ui-icon ui-icon-arrowthick-1-se"></span>');
-		return li.data('item.autocomplete', item).append(a).appendTo(ul);
+		return li.data('ui-autocomplete-item', item).append(a).appendTo(ul);
 	};
 	
 	function afetrRenderMenu (ul, items) {
@@ -284,8 +284,8 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 	// click handler for tag expand
 	if (typeof(expand_all_btn) != 'undefined')
 	{
-		$(expand_all_btn).click(function() {
-			if ($(this).attr('disabled') != "disabled") {
+		$(expand_all_btn).on('click', function() {
+			if (! $(this).prop('disabled')) {
 				e = jQuery.Event('keydown');
 				if ($(input)[0].value == "*") {
 					e.keyCode = e.which = $.ui.keyCode.ESCAPE;
@@ -294,7 +294,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 				}
 				else {
 					$(input).val("*");
-					$(input).focus();
+					$(input).trigger('focus');
 					$(input).autocomplete("search", "*");
 				}
 			}
@@ -307,15 +307,15 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 	
 
 	function autocomplete_open(event, ui) {
-			$(this).data("autocomplete").menu.element.addClass("autocomplete-menu");
+			$(this).autocomplete("instance").menu.element.addClass("autocomplete-menu");
 			var menu_obj = $(this);
 			// escape handler
-			$(document).bind("keydown", function(event, arg) {
-				menu_obj.data("autocomplete").close(event, arg);
+			$(document).on("keydown", function(event, arg) {
+				menu_obj.autocomplete("instance").close(event, arg);
 			});
-			$(this).data("autocomplete").close = function (e, ar) {
-				if (typeof(e) == 'undefined' || (e.type == "menuselected" || e.keyCode == $.ui.keyCode.ESCAPE || e.keyCode == $.ui.keyCode.BACKSPACE))
-					clearTimeout(this.closing), this.menu.element.is(":visible") && (this.menu.element.hide(), this.menu.deactivate(), this._trigger("close", e));
+			$(this).autocomplete("instance").close = function (e, ar) {
+				if (typeof(e) == 'undefined' || (e.type == "menuselect" || e.keyCode == $.ui.keyCode.ESCAPE || e.keyCode == $.ui.keyCode.BACKSPACE))
+					clearTimeout(this.closing), this.menu.element.is(":visible") && (this.menu.element.hide(), this.menu.blur(), this._trigger("close", e));
 				else
 					return false;
 			};
@@ -325,7 +325,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 			var tmp_value = value;
 		else
 			var tmp_value = tags_name_to_id[value] || "";
-		input.attr("value", tmp_value);
+		input.val(tmp_value);
 	}
 
 	var oldRenderMenu = $.ui.autocomplete.prototype._renderMenu;
@@ -352,10 +352,10 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 								source: suggest_wrapper,
 								open: autocomplete_open,
 								create: function(event, ui){
-									$(this).data("autocomplete")._renderItem = function(ul, item) {
-										renderItem.call(this, ul, item);
+									$(this).autocomplete("instance")._renderItem = function(ul, item) {
+										return renderItem.call(this, ul, item);
 									};
-									$(this).data("autocomplete")._renderMenu = function(ul, items) {
+									$(this).autocomplete("instance")._renderMenu = function(ul, items) {
 										oldRenderMenu.call(this, ul, items);
 										afetrRenderMenu.call(this, ul, items);
 									};
@@ -391,7 +391,7 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 				var selected_tag = tags_to_name[preselect['id']];
 			}
 			if (typeof (selected_tag) != 'undefined') {
-				$(input).attr("value", selected_tag);
+				$(input).val(selected_tag);
 				available_tags.splice($.inArray(selected_tag, available_tags), 1);
 				selected.push(selected_tag);
 			}
@@ -407,10 +407,10 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 			available_tags: available_tags,
 			all_tags: all_tags,
 			create: function(event, ui){
-				$(this).data("autocomplete")._renderItem = function(event, ui) {
-					renderItem.call(this, event, ui);
+				$(this).autocomplete("instance")._renderItem = function(event, ui) {
+					return renderItem.call(this, event, ui);
 				};
-				$(this).data("autocomplete")._renderMenu = function(ul, items) {
+				$(this).autocomplete("instance")._renderMenu = function(ul, items) {
 					oldRenderMenu.call(this, ul, items);
 					afetrRenderMenu.call(this, ul, items);
 				};
@@ -419,15 +419,15 @@ function generateTagList(input, ul, taglist, preselect, value_name, tag_limit, e
 				change_value(value_holder, ui.item.value);
 			},
 		});
-		$(input).click(function(){
-		    $(this).select();
+		$(input).on('click', function(){
+		    $(this).trigger('select');
 		    $(this).autocomplete('close');
 		});
-		$(input).bind('input', function() {
+		$(input).on('input', function() {
 			change_value(value_holder, this.value);
 		});
 		// for old browsers
-		$(input).keyup(function() {
+		$(input).on('keyup', function() {
 			change_value(value_holder, this.value);
 		});
 	}

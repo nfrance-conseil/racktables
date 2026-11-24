@@ -95,7 +95,7 @@
 				cmenu.createShadow(cmenu); // Extracted to method for extensibility
 				if (cmenu.shadowOffset) { cmenu.shadowOffsetX = cmenu.shadowOffsetY = cmenu.shadowOffset; }
 			}
-			$('body').bind('contextmenu',function(){cmenu.hide();}); // If right-clicked somewhere else in the document, hide this menu
+			$('body').on('contextmenu',function(){cmenu.hide();}); // If right-clicked somewhere else in the document, hide this menu
 			return cmenu;
 		},
 		
@@ -108,7 +108,7 @@
 		createMenu: function(menu,cmenu) {
 			var className = cmenu.className;
 			$.each(cmenu.theme.split(","),function(i,n){className+=' '+cmenu.themePrefix+n});
-			var $t = $('<table cellspacing=0 cellpadding=0></table>').click(function(){cmenu.hide(); return false;}); // We wrap a table around it so width can be flexible
+			var $t = $('<table cellspacing=0 cellpadding=0></table>').on('click', function(){cmenu.hide(); return false;}); // We wrap a table around it so width can be flexible
 			var $tr = $('<tr></tr>');
 			var $td = $('<td></td>');
 			var $div = $('<div class="'+className+'"></div>');
@@ -153,7 +153,7 @@
 			var iconStyle = (o.icon)?'background-image:url('+o.icon+');':'';
 			var $div = $('<div class="'+cmenu.itemClassName+' '+o.className+((o.disabled)?' '+cmenu.disabledItemClassName:'')+'" title="'+o.title+'"></div>')
 							// If the item is disabled, don't do anything when it is clicked
-							.click(function(e){if(cmenu.isItemDisabled(this)){return false;}else{return o.onclick.call(cmenu.target,this,cmenu,e)}})
+							.on('click', function(e){if(cmenu.isItemDisabled(this)){return false;}else{return o.onclick.call(cmenu.target,this,cmenu,e)}})
 							// Change the class of the item when hovered over
 							.hover( function(){ o.hoverItem.call(this,(cmenu.isItemDisabled(this))?cmenu.disabledItemHoverClassName:o.hoverClassName); }
 									,function(){ o.hoverItemOut.call(this,(cmenu.isItemDisabled(this))?cmenu.disabledItemHoverClassName:o.hoverClassName); }
@@ -259,7 +259,7 @@
 	$.fn.contextMenu = function(menu,options) {
 		var cmenu = $.contextMenu.create(menu,options);
 		return this.each(function(){
-			$(this).bind('contextmenu',function(e){cmenu.show(this,e);return false;});
+			$(this).on('contextmenu',function(e){cmenu.show(this,e);return false;});
 		});
 	};
 })(jQuery);

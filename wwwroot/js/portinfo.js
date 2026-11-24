@@ -45,8 +45,8 @@ $(document).ready(function () {
 		$('<div />').hide().addClass('cursor-shadow').css('position', 'absolute').css('width', 16).css('height', 16).css("background-image", "url(index.php?module=chrome&uri=pix/ajax-loader.gif").appendTo('body');
 
 		// bind popup menu to every link with class port-popup
-		$('a.port-popup').bind('click', function(e){port_cmenu.show(this,e);return false;});
-		$('body').bind('mouseup', rememberCursorPosition);
+		$('a.port-popup').on('click', function(e){port_cmenu.show(this,e);return false;});
+		$('body').on('mouseup', rememberCursorPosition);
 	}
 });
 
@@ -94,7 +94,7 @@ function menuItemClicked(menuItem, menu) {
 		beforeSend: function(XMLHttpRequest) {
 			if (++wait_count > 0) {
 				cursor_shadow = $('.cursor-shadow');
-				$('body').bind('mousemove', waitCursorMove);
+				$('body').on('mousemove', waitCursorMove);
 				if (bk_event)
 					waitCursorMove(bk_event);
 			}
@@ -103,8 +103,8 @@ function menuItemClicked(menuItem, menu) {
 		complete: function(XMLHttpRequest, textStatus) {
 			if (--wait_count <= 0) {
 				$('.cursor-shadow').hide();
-				$('body').unbind('mousemove', waitCursorMove);
-				$('body').unbind('click', rememberCursorPosition);
+				$('body').off('mousemove', waitCursorMove);
+				$('body').off('click', rememberCursorPosition);
 			}
 			if (! bSuccessIcon)
 				setItemIcon(menuItem, '');
@@ -183,7 +183,7 @@ function applyMacData(data) {
 			}
 			if (item['popup'] && appended) {
 				var obj = $("[id='maclist-popup-"+portname+"']");
-				if (! obj.size())
+				if (! obj.length)
 					obj = $('<div />').addClass('popup-box mac-list').attr('id', 'maclist-popup-'+portname).html(item['popup']).appendTo('body');
 				else
 					obj.html(item['popup']);

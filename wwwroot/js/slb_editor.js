@@ -1,6 +1,6 @@
 $(document).ready (function () {
 	// popup form for port/ip config update
-	$('.slb-checks.editable li').click (function (e) {
+	$('.slb-checks.editable li').on ('click', function (e) {
 		if (e.target.tagName != 'LI')
 			return true;
 		// clone form into new_form, re-setting all selectbox values which are cleared by clone()
@@ -13,7 +13,7 @@ $(document).ready (function () {
 		});
 		var form = $('<div>').addClass ('popup-box').appendTo ('body').append (new_form);
 		// confirmation box on port/vip deletion
-		$('a.del-used-slb').click (function (e) {
+		$('a.del-used-slb').on ('click', function (e) {
 			return confirm ('This entity is used. Please confirm the deletion');
 		});
 
@@ -22,14 +22,14 @@ $(document).ready (function () {
 	});
 
 	// confirmation box on triplet deletion
-	$('form#del input').click (function (e) {
+	$('form#del input').on ('click', function (e) {
 		return confirm ('Please confirm the deletion of triplet');
 	});
 
 	// new triplet form stage1 handler
 	var forms = $('form#addLink');
-	forms.submit (function() { return false });
-	forms.find('input[name="submit"]').click (function (e) {
+	forms.on ('submit', function() { return false });
+	forms.find('input[name="submit"]').on ('click', function (e) {
 		var form = $(this).parents('form');
 		$.ajax ({
 			type: 'POST',
@@ -49,7 +49,7 @@ $(document).ready (function () {
 	});
 });
 
-function slb_config_preview (e, object_id, vs_id, rspool_id) {
+function slb_config_preview (object_id, vs_id, rspool_id, e) {
 	$.ajax ({
 		type: 'POST',
 		url: 'index.php',

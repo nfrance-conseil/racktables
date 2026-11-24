@@ -105,7 +105,7 @@ ul.tagit li.tagit-choice .tagit-close .text-icon, ul.tagit-vertical li.tagit-cho
 }
 
 .icon-close {
-	background-image: url(?module=chrome&uri=pix/jquery-ui-1.8.22.redmond/ui-icons_469bdd_256x240.png);
+	background-image: url(?module=chrome&uri=pix/jquery-ui-1.14.1.redmond/ui-icons_469bdd_256x240.png);
 	background-position: -80px -128px;
 	height: 16px;
 	width: 16px;
@@ -116,7 +116,7 @@ ul.tagit li.tagit-choice .tagit-close .text-icon, ul.tagit-vertical li.tagit-cho
 }
 
 .icon-folder-open {
-	background-image: url(?module=chrome&uri=pix/jquery-ui-1.8.22.redmond/ui-icons_469bdd_256x240.png);
+	background-image: url(?module=chrome&uri=pix/jquery-ui-1.14.1.redmond/ui-icons_469bdd_256x240.png);
 	background-position: -16px -96px;
 	height: 16px;
 	width: 16px;
