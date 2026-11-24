@@ -337,6 +337,11 @@ function proxyMuninRequest ($server_id, $graph)
 
 	// Initial options up here so a specific type can override them
 	curl_setopt ($session, CURLOPT_FOLLOWLOCATION, FALSE);
+	// The URL comes from the configuration: no file://, gopher:// and the like.
+	if (defined ('CURLOPT_PROTOCOLS_STR'))
+		curl_setopt ($session, CURLOPT_PROTOCOLS_STR, 'http,https');
+	else
+		curl_setopt ($session, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
 	curl_setopt ($session, CURLOPT_TIMEOUT, 10);
 	curl_setopt ($session, CURLOPT_RETURNTRANSFER, TRUE);
 	curl_setopt ($session, CURLOPT_URL, $url);
