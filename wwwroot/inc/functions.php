@@ -2017,6 +2017,7 @@ function getCellFilter ()
 {
 	global $sic;
 	global $pageno;
+	$filter_key = (string) $pageno; // NULL when called without a page (tests)
 	$andor_used = FALSE;
 	startSession();
 	// On the form submit "andor" appears on the request and means the user is
@@ -2024,16 +2025,16 @@ function getCellFilter ()
 	if (isset($_REQUEST['andor']))
 		$andor_used = TRUE;
 	if ($andor_used || array_key_exists ('clear-cf', $_REQUEST))
-		unset($_SESSION[$pageno]); // delete saved filter
+		unset($_SESSION[$filter_key]); // delete saved filter
 
 	// otherwise inject saved filter to the $_REQUEST and $sic vars
-	elseif (isset ($_SESSION[$pageno]['filter']) && is_array ($_SESSION[$pageno]['filter']) && getConfigVar ('STATIC_FILTER') == 'yes')
+	elseif (isset ($_SESSION[$filter_key]['filter']) && is_array ($_SESSION[$filter_key]['filter']) && getConfigVar ('STATIC_FILTER') == 'yes')
 		foreach (array('andor', 'cfe', 'cft[]', 'cfp[]', 'nft[]', 'nfp[]') as $param)
 		{
 			$param = str_replace ('[]', '', $param, $is_array);
-			if (! isset ($_REQUEST[$param]) && isset ($_SESSION[$pageno]['filter'][$param]) && (! $is_array || is_array ($_SESSION[$pageno]['filter'][$param])))
+			if (! isset ($_REQUEST[$param]) && isset ($_SESSION[$filter_key]['filter'][$param]) && (! $is_array || is_array ($_SESSION[$filter_key]['filter'][$param])))
 			{
-				$_REQUEST[$param] = $_SESSION[$pageno]['filter'][$param];
+				$_REQUEST[$param] = $_SESSION[$filter_key]['filter'][$param];
 				if (! $is_array)
 					$sic[$param] = $_REQUEST[$param];
 			}
@@ -2059,7 +2060,7 @@ function getCellFilter ()
 		break;
 	case ($_REQUEST['andor'] == 'and'):
 	case ($_REQUEST['andor'] == 'or'):
-		$_SESSION[$pageno]['filter']['andor'] = $_REQUEST['andor'];
+		$_SESSION[$filter_key]['filter']['andor'] = $_REQUEST['andor'];
 		$ret['andor'] = $andor = $_REQUEST['andor'];
 		break;
 	default:
@@ -2073,7 +2074,7 @@ function getCellFilter ()
 	foreach (array ('cft', 'cfp', 'nft', 'nfp') as $param)
 		if (isset ($_REQUEST[$param]) && is_array ($_REQUEST[$param]))
 		{
-			$_SESSION[$pageno]['filter'][$param] = $_REQUEST[$param];
+			$_SESSION[$filter_key]['filter'][$param] = $_REQUEST[$param];
 			foreach ($_REQUEST[$param] as $req_key)
 			{
 				if (strpos ($param, 'ft') !== FALSE)
@@ -2110,7 +2111,7 @@ function getCellFilter ()
 	// Extra text comes from TEXTAREA and is easily screwed by standard escaping function.
 	if (isset ($sic['cfe']))
 	{
-		$_SESSION[$pageno]['filter']['cfe'] = $sic['cfe'];
+		$_SESSION[$filter_key]['filter']['cfe'] = $sic['cfe'];
 		$ret['extratext'] = trim ($sic['cfe']);
 		$ret['urlextra'] .= '&cfe=' . urlencode ($ret['extratext']);
 	}
