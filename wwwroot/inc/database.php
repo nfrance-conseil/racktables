@@ -2813,8 +2813,8 @@ function getIPv4AddressSearchResult ($terms)
 	{
 		$query .= $or . "name like ? or comment like ?";
 		$or = ' or ';
-		$qparams[] = "%{$term}%";
-		$qparams[] = "%{$term}%";
+		$qparams[] = sqlLikeSubstring ($term);
+		$qparams[] = sqlLikeSubstring ($term);
 	}
 	$result = usePreparedSelectBlade ($query, $qparams);
 	$ret = array();
@@ -2836,8 +2836,8 @@ function getIPv6AddressSearchResult ($terms)
 	{
 		$query .= $or . "name like ? or comment like ?";
 		$or = ' or ';
-		$qparams[] = "%{$term}%";
-		$qparams[] = "%{$term}%";
+		$qparams[] = sqlLikeSubstring ($term);
+		$qparams[] = sqlLikeSubstring ($term);
 	}
 	$result = usePreparedSelectBlade ($query, $qparams);
 	return reindexById ($result->fetchAll (PDO::FETCH_ASSOC), 'ip');
@@ -3066,6 +3066,12 @@ function getVLANSearchResult ($terms)
 	return $ret;
 }
 
+// LIKE pattern that matches $s as a plain substring.
+function sqlLikeSubstring ($s)
+{
+	return '%' . addcslashes ($s, '%_\\') . '%';
+}
+
 function getSearchResultByField ($tablename, $retcolumns, $scancolumn, $terms, $ordercolumn = '', $exactness = 0)
 {
 	$query = 'SELECT ' . implode (', ', $retcolumns) . " FROM {$tablename} WHERE ";
@@ -3090,7 +3096,7 @@ function getSearchResultByField ($tablename, $retcolumns, $scancolumn, $terms, $
 			break;
 		default:
 			$query .= $pfx . "{$scancolumn} LIKE ?";
-			$qparams[] = "%{$term}%";
+			$qparams[] = sqlLikeSubstring ($term);
 			break;
 		}
 		$pfx = ' OR ';
@@ -3156,7 +3162,7 @@ function getStickerSearchResults ($tablename, $what)
 		'LEFT JOIN Dictionary D ON AM.chapter_id = D.chapter_id AND AV.uint_value = D.dict_key ' .
 		'WHERE string_value LIKE ? ' .
 		'OR (A.type = "dict" AND dict_value LIKE ?) ORDER BY object_id',
-		array ("%{$what}%", "%{$what}%")
+		array (sqlLikeSubstring ($what), sqlLikeSubstring ($what))
 	);
 	$ret = array ();
 	while ($row = $result->fetch (PDO::FETCH_ASSOC))
@@ -3284,7 +3290,7 @@ function searchCableIDs ($what)
 		'SELECT object_id, cable ' .
 		'FROM Link INNER JOIN Port ON porta = Port.id OR portb = Port.id ' .
 		'WHERE cable LIKE ? ORDER BY object_id',
-		array ("%{$what}%")
+		array (sqlLikeSubstring ($what))
 	);
 	while ($row = $result->fetch (PDO::FETCH_ASSOC))
 	{
@@ -3312,7 +3318,7 @@ function searchByMgmtHostname ($string)
 	unset ($result);
 
 	// second attempt: search for FQDN part, separated by dot.
-	$result = usePreparedSelectBlade ('SELECT object_id FROM AttributeValue WHERE attr_id = 3 AND string_value LIKE ? LIMIT 2', array ("$string.%"));
+	$result = usePreparedSelectBlade ('SELECT object_id FROM AttributeValue WHERE attr_id = 3 AND string_value LIKE ? LIMIT 2', array (addcslashes ($string, '%_\\') . '.%'));
 	$rows = $result->fetchAll (PDO::FETCH_NUM);
 	return count ($rows) == 1 ? $rows[0][0] : NULL;
 }

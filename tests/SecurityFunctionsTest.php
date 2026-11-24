@@ -125,4 +125,13 @@ class SecurityFunctionsTest extends RTTestCase
 		$this->assertStringNotContainsString ('"><script>', $html);
 		$this->assertStringContainsString ('csrf_token=', makeHrefProcess (array ('page' => 'object', 'tab' => 'default', 'op' => 'someOp')));
 	}
+
+	/**
+	 * @group small
+	 */
+	public function testSqlLikeSubstring ()
+	{
+		$this->assertEquals ('%abc%', sqlLikeSubstring ('abc'));
+		$this->assertEquals ('%10\\%\\_a\\\\b%', sqlLikeSubstring ('10%_a\\b'));
+	}
 }

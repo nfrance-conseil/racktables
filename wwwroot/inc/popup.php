@@ -91,19 +91,19 @@ INNER JOIN (
 	if (! empty ($filter['objects']))
 	{
 		$query .= 'AND o.name like ? ';
-		$qparams[] = '%' . $filter['objects'] . '%';
+		$qparams[] = sqlLikeSubstring ($filter['objects']);
 	}
 	// asset_no filter
 	if (! empty ($filter['asset_no']))
 	{
 		$query .= 'AND o.asset_no like ? ';
-		$qparams[] = '%' . $filter['asset_no'] . '%';
+		$qparams[] = sqlLikeSubstring ($filter['asset_no']);
 	}
 	// portname filter
 	if (! empty ($filter['ports']))
 	{
 		$query .= 'AND p.name LIKE ? ';
-		$qparams[] = '%' . $filter['ports'] . '%';
+		$qparams[] = sqlLikeSubstring ($filter['ports']);
 	}
 	// ordering
 	$query .= ' ORDER BY o.name';

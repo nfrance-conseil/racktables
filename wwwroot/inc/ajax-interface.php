@@ -330,29 +330,27 @@ function getAutocompleteListAJAX()
 	}
 	else
 		assertPermission ('depot', 'default');
-	// The term is a substring, not a pattern.
-	$term = addcslashes ($term, '%_\\');
 
 	switch ($realm)
 	{
 		case 'object':
-			$result = usePreparedSelectBlade ("SELECT name FROM Object WHERE name LIKE ? GROUP BY name ORDER BY name LIMIT 101", array ("%$term%"));
+			$result = usePreparedSelectBlade ("SELECT name FROM Object WHERE name LIKE ? GROUP BY name ORDER BY name LIMIT 101", array (sqlLikeSubstring ($term)));
 			$rows = $result->fetchAll (PDO::FETCH_COLUMN, 0);
 			unset ($result);
 			break;
 		case 'asset':
-			$result = usePreparedSelectBlade ("SELECT asset_no FROM Object WHERE asset_no LIKE ? GROUP BY asset_no ORDER BY asset_no LIMIT 101", array ("%$term%"));
+			$result = usePreparedSelectBlade ("SELECT asset_no FROM Object WHERE asset_no LIKE ? GROUP BY asset_no ORDER BY asset_no LIMIT 101", array (sqlLikeSubstring ($term)));
 			$rows = $result->fetchAll (PDO::FETCH_COLUMN, 0);
 			unset ($result);
 			break;
 		case 'port':
-			$result = usePreparedSelectBlade ("SELECT name FROM Port WHERE name LIKE ? GROUP BY name ORDER BY name LIMIT 101", array ("%$term%"));
+			$result = usePreparedSelectBlade ("SELECT name FROM Port WHERE name LIKE ? GROUP BY name ORDER BY name LIMIT 101", array (sqlLikeSubstring ($term)));
 			$rows = $result->fetchAll (PDO::FETCH_COLUMN, 0);
 			unset ($result);
 			break;
 		case 'bond_name':
 			$object_id = genericAssertion ('object_id', 'natural');
-			$result = usePreparedSelectBlade ("SELECT name FROM Port WHERE object_id = ? AND name LIKE ? GROUP BY name ORDER BY name LIMIT 101", array ($object_id, "%$term%"));
+			$result = usePreparedSelectBlade ("SELECT name FROM Port WHERE object_id = ? AND name LIKE ? GROUP BY name ORDER BY name LIMIT 101", array ($object_id, sqlLikeSubstring ($term)));
 			$rows = $result->fetchAll (PDO::FETCH_COLUMN, 0);
 			unset ($result);
 			break;
