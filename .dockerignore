@@ -9,3 +9,4 @@ Dockerfile
 wwwroot/inc/secret.php
 wwwroot/inc/local.php
 **/*~
+docs
