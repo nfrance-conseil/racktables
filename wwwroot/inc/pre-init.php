@@ -101,6 +101,13 @@ function isValidPasswordHash ($hash)
 // is throttled, so that nobody can lock out a legitimate user.
 // Behind a reverse proxy, REMOTE_ADDR must be the client (mod_remoteip...).
 define ('LOGIN_THROTTLE_MAX_FAILURES', 10);
+// Login sessions (seconds), secret.php can define other values.
+if (! defined ('LOGIN_IDLE_TIMEOUT'))
+	define ('LOGIN_IDLE_TIMEOUT', 7200);
+if (! defined ('LOGIN_MAX_LIFETIME'))
+	define ('LOGIN_MAX_LIFETIME', 43200);
+// time to enter the second factor after the password
+define ('LOGIN_MFA_TIMEOUT', 300);
 define ('LOGIN_THROTTLE_WINDOW', 900); // seconds
 
 function isLoginThrottled()

@@ -25,8 +25,8 @@ creates the database schema and the administrator account.
   is only reachable from an internal network; the passwords are Docker
   secrets; only `index.php` and static files are served; PHP runs with the
   production settings (no error display, no `allow_url_fopen`...).
-* HTTPS: RackTables uses HTTP basic authentication, put an HTTPS reverse
-  proxy in front of the container. Set `RT_TRUSTED_PROXIES` to the address of
+* HTTPS: the passwords and the session cookie must not travel in clear text,
+  put an HTTPS reverse proxy in front of the container. Set `RT_TRUSTED_PROXIES` to the address of
   the proxy so that the client addresses (login throttling) and the HTTPS
   scheme (HSTS, Secure cookie) are taken from `X-Forwarded-For` and
   `X-Forwarded-Proto`. `RT_HTTP_BIND` and `RT_HTTP_PORT` set the published
@@ -162,6 +162,24 @@ and initialize the application.
 | Ubuntu 20.04    | `www-data:www-data`     | `/var/run/mysqld/mysqld.sock`    |
 | Ubuntu 22.04    | `www-data:www-data`     | `/run/mysqld/mysqld.sock`        |
 | Ubuntu 24.04    | `www-data:www-data`     | `/run/mysqld/mysqld.sock`        |
+
+# Authentication
+
+Local (`$user_auth_src = 'database'`) and LDAP accounts log in with a form;
+the PHP session then identifies the user until logout, after
+`LOGIN_IDLE_TIMEOUT` seconds without request (2 hours by default) or after
+`LOGIN_MAX_LIFETIME` seconds anyway (12 hours). Define these constants in
+`secret.php` to change the values. Ten failed attempts from the same address
+block the logins from it for 15 minutes.
+
+Every user can enable a second factor (TOTP, any authenticator application) in
+*My account* → *Two-factor authentication*. The `MFA_REQUIRED` configuration
+option makes it mandatory: users without a second factor can only enroll one.
+An administrator removes the second factor of a user who lost the device on
+the *Properties* tab of the user.
+
+Scripts that use HTTP basic authentication need `$allow_http_basic_auth = TRUE;`
+in `secret.php`; accounts with a second factor cannot use it.
 
 # How to upgrade RackTables
 

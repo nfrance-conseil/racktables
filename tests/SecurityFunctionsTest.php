@@ -134,4 +134,46 @@ class SecurityFunctionsTest extends RTTestCase
 		$this->assertEquals ('%abc%', sqlLikeSubstring ('abc'));
 		$this->assertEquals ('%10\\%\\_a\\\\b%', sqlLikeSubstring ('10%_a\\b'));
 	}
+
+	/**
+	 * @group small
+	 * @dataProvider providerTOTP
+	 */
+	public function testTOTPCodes ($time, $code)
+	{
+		// RFC 6238 appendix B, SHA-1 key "12345678901234567890"
+		$secret = base32Encode ('12345678901234567890');
+		$this->assertEquals ('GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', $secret);
+		$this->assertEquals ($code, getTOTPCode ($secret, intdiv ($time, 30), 8));
+	}
+
+	public function providerTOTP ()
+	{
+		return array
+		(
+			array (59, '94287082'),
+			array (1111111109, '07081804'),
+			array (1111111111, '14050471'),
+			array (1234567890, '89005924'),
+			array (2000000000, '69279037'),
+			array (20000000000, '65353130'),
+		);
+	}
+
+	/**
+	 * @group small
+	 */
+	public function testCheckTOTPCode ()
+	{
+		$secret = generateTOTPSecret();
+		$this->assertEquals (20, strlen (base32Decode ($secret)));
+		$now = 1700000000;
+		$step = intdiv ($now, 30);
+		$this->assertSame ($step, checkTOTPCode ($secret, getTOTPCode ($secret, $step), 0, $now));
+		$this->assertSame ($step - 1, checkTOTPCode ($secret, getTOTPCode ($secret, $step - 1), 0, $now)); // clock drift
+		$this->assertFalse (checkTOTPCode ($secret, getTOTPCode ($secret, $step - 2), 0, $now));
+		$this->assertFalse (checkTOTPCode ($secret, getTOTPCode ($secret, $step), $step, $now)); // replay
+		$this->assertFalse (checkTOTPCode ($secret, 'abcdef', 0, $now));
+		$this->assertSame ($step, checkTOTPCode ($secret, chunk_split (getTOTPCode ($secret, $step), 3, ' '), 0, $now));
+	}
 }

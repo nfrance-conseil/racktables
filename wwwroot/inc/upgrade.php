@@ -223,6 +223,12 @@ pages are sent with a strict Content-Security-Policy: inline event handlers
 (onclick=...) and javascript: URLs no longer run, local plugins must attach
 their handlers from JavaScript files, from addJSText() blocks (they carry the
 nonce of the policy) or with the data-rt-click attributes of getJSEventAttrs().
+
+Database and LDAP accounts now log in with a form and a session instead of
+HTTP basic authentication (sessions end after LOGIN_IDLE_TIMEOUT and
+LOGIN_MAX_LIFETIME seconds). Users can enable a TOTP second factor in "My
+account", and the MFA_REQUIRED option makes it mandatory. Scripts that send
+HTTP basic credentials need $allow_http_basic_auth = TRUE; in secret.php.
 ENDOFTEXT
 ,
 );
@@ -1421,6 +1427,14 @@ INSERT INTO `Config` (varname, varvalue, vartype, emptyok, is_hidden, is_userdef
   `last_failure` timestamp NOT NULL default CURRENT_TIMESTAMP,
   PRIMARY KEY (`ip`)
 ) ENGINE=InnoDB";
+			$query[] = "CREATE TABLE `UserMFA` (
+  `user_name` char(64) NOT NULL,
+  `totp_secret` char(32) NOT NULL,
+  `last_step` bigint(20) unsigned NOT NULL default '0',
+  `enabled` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_name`)
+) ENGINE=InnoDB";
+			$query[] = "INSERT INTO Config VALUES ('MFA_REQUIRED','no','string','no','no','no','Require a second factor (TOTP) from database and LDAP accounts')";
 			// The request values used to be HTML-escaped before some of them
 			// were stored, the data is now stored as typed and escaped on output.
 			// IGNORE leaves a value as is if the decoded one is a duplicate.

@@ -83,6 +83,15 @@ function renderUser ($user_id)
 
 function renderUserProperties ($user_id)
 {
+	$userinfo = spotEntity ('user', $user_id);
+	if (NULL !== $mfa = getUserMFA ($userinfo['user_name']))
+	{
+		startPortlet ('Two-factor authentication');
+		echo '<p>Enabled since ' . stringForLabel ($mfa['enabled'], 0) . ' ';
+		echo getOpLink (array ('op' => 'resetMFA'), 'remove the second factor', 'clear', 'The user will enroll a new device', 'need-confirmation');
+		echo '</p>';
+		finishPortlet();
+	}
 	printOpFormIntro ('edit');
 	echo '<table border=0 align=center>';
 	echo "<tr><th class=tdright>Tags:</th><td class=tdleft>";
@@ -1145,6 +1154,54 @@ function renderMyAccount ()
 	echo "<tr><th>Implicit tags:</th><td>" . serializeTags ($impl_tags) . "</td></tr>\n";
 	echo "<tr><th>Automatic tags:</th><td>" . serializeTags ($auto_tags) . "</td></tr>\n";
 	echo '</table></div>';
+}
+
+function renderMyMFA ()
+{
+	global $remote_username;
+	$mfa = getUserMFA ($remote_username);
+	startPortlet ('Two-factor authentication');
+	echo '<div style="padding: 0 1em">';
+	if ($mfa !== NULL)
+	{
+		echo '<p>The login asks for a code of your authenticator application (TOTP) since ' . stringForLabel ($mfa['enabled'], 0) . '.</p>';
+		if (getConfigVar ('MFA_REQUIRED') != 'yes')
+		{
+			printOpFormIntro ('disableMFA');
+			echo '<p>Current code: <input type=text name=code size=8 inputmode=numeric autocomplete=one-time-code> ';
+			echo '<input type=submit value="Disable two-factor authentication"></p></form>';
+		}
+	}
+	else
+	{
+		if (getConfigVar ('MFA_REQUIRED') == 'yes')
+			echo '<p class=msg_warning>Your account must use two-factor authentication, enable it to continue.</p>';
+		startSession();
+		if (! isset ($_SESSION['mfa_enroll']))
+			$_SESSION['mfa_enroll'] = generateTOTPSecret();
+		$secret = $_SESSION['mfa_enroll'];
+		session_commit();
+		$uri = 'otpauth://totp/' . rawurlencode ('RackTables:' . $remote_username) . '?secret=' . $secret . '&issuer=RackTables';
+		echo '<p>1. Scan this QR code with an authenticator application, or enter the key by hand.</p>';
+		echo '<div id="mfa-qr" data-uri="' . htmlspecialchars ($uri, ENT_QUOTES, 'UTF-8') . '"></div>';
+		echo '<p>Key: <code id="mfa-key">' . implode (' ', str_split ($secret, 4)) . '</code></p>';
+		printOpFormIntro ('enableMFA');
+		echo '<p>2. Enter the code that the application shows: <input type=text name=code size=8 inputmode=numeric autocomplete=one-time-code> ';
+		echo '<input type=submit value="Enable"></p></form>';
+		addJSInternal ('js/qrcode.js');
+		addJSText (<<<'END'
+$(document).ready (function () {
+	var box = document.getElementById ('mfa-qr');
+	var qr = qrcode (0, 'M');
+	qr.addData (box.getAttribute ('data-uri'));
+	qr.make();
+	box.innerHTML = qr.createSvgTag (4);
+});
+END
+		);
+	}
+	echo '</div>';
+	finishPortlet();
 }
 
 function renderMyPasswordEditor ()

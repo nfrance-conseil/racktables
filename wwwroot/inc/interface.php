@@ -73,6 +73,11 @@ $attrtypes = array
 
 function showLogoutURL ()
 {
+	if (usesLoginForm())
+	{
+		echo 'index.php?logout';
+		return;
+	}
 	$https = (isset ($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '';
 	$port = (! in_array ($_SERVER['SERVER_PORT'], array (80, 443))) ? ':' . $_SERVER['SERVER_PORT'] : '';
 	printf ('http%s://logout@%s%s%s?logout', $https, $_SERVER['SERVER_NAME'], $port, $_SERVER['PHP_SELF']);

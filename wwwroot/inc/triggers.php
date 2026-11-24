@@ -137,6 +137,13 @@ function trigger_passwdchange ()
 	return ($user_auth_src == 'database' || 1 === getUserIDByUsername ($remote_username)) ? 'std' : '';
 }
 
+// The second factor is asked by the login form of database and LDAP accounts.
+function trigger_mfa ()
+{
+	global $user_auth_src;
+	return ($user_auth_src == 'database' || $user_auth_src == 'ldap') ? 'std' : '';
+}
+
 function trigger_file_editText ()
 {
 	$fileInfo = spotEntity ('file', getBypassValue());

@@ -3398,7 +3398,10 @@ function commitUpdateUserAccount ($id, $new_username, $new_realname, $new_passwo
 	// but authentication may be not (the rows in UserConfig may have no matching
 	// rows in UserAccount).
 	if ($userinfo['user_name'] != $new_username)
+	{
 		usePreparedUpdateBlade ('UserConfig', array ('user' => $new_username), array('user' => $userinfo['user_name']));
+		usePreparedUpdateBlade ('UserMFA', array ('user_name' => $new_username), array('user_name' => $userinfo['user_name']));
+	}
 }
 
 function commitDeleteUserAccount ($id)
@@ -3408,7 +3411,38 @@ function commitDeleteUserAccount ($id)
 	$userinfo = spotEntity ('user', $id);
 	destroyTagsForEntity ('user', $id);
 	usePreparedDeleteBlade ('UserConfig', array ('user' => $userinfo['user_name']));
+	deleteUserMFA ($userinfo['user_name']);
 	usePreparedDeleteBlade ('UserAccount', array ('user_id' => $id));
+}
+
+// Second factor (TOTP) of an account: NULL, or the row with the base32
+// secret and the last time step used.
+function getUserMFA ($username)
+{
+	$result = usePreparedSelectBlade ('SELECT totp_secret, last_step, enabled FROM UserMFA WHERE user_name = ?', array ($username));
+	$row = $result->fetch (PDO::FETCH_ASSOC);
+	return $row === FALSE ? NULL : $row;
+}
+
+function setUserMFA ($username, $secret)
+{
+	usePreparedExecuteBlade
+	(
+		'INSERT INTO UserMFA (user_name, totp_secret, last_step) VALUES (?, ?, 0) ' .
+		'ON DUPLICATE KEY UPDATE totp_secret = VALUES(totp_secret), last_step = 0, enabled = NOW()',
+		array ($username, $secret)
+	);
+}
+
+// Return FALSE if the step is not after the last one (replay).
+function setUserMFALastStep ($username, $step)
+{
+	return 1 == usePreparedExecuteBlade ('UPDATE UserMFA SET last_step = ? WHERE user_name = ? AND last_step < ?', array ($step, $username, $step));
+}
+
+function deleteUserMFA ($username)
+{
+	usePreparedDeleteBlade ('UserMFA', array ('user_name' => $username));
 }
 
 // This function returns an array of all port type pairs from PortCompat table.

@@ -801,6 +801,14 @@ function get_pseudo_file ($name)
   PRIMARY KEY (`ip`)
 ) ENGINE=InnoDB";
 
+		$query[] = "CREATE TABLE `UserMFA` (
+  `user_name` char(64) NOT NULL,
+  `totp_secret` char(32) NOT NULL,
+  `last_step` bigint(20) unsigned NOT NULL default '0',
+  `enabled` timestamp NOT NULL default CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_name`)
+) ENGINE=InnoDB";
+
 		$query[] = "CREATE TABLE `LDAPCache` (
   `presented_username` char(64) NOT NULL,
   `successful_hash` varchar(255) NOT NULL,
@@ -2340,6 +2348,7 @@ WHERE O.objtype_id = 1562";
 ('NEAREST_RACKS_CHECKBOX', 'yes', 'string', 'yes', 'no', 'yes', 'Enable nearest racks in port list filter by default'),
 ('SHOW_OBJECTTYPE', 'yes', 'string', 'no', 'no', 'yes', 'Show object type column on depot page'),
 ('OBJECTLOG_PREVIEW_ENTRIES','5','uint','no','no','yes','Object log preview maximum entries (0 disables the preview)'),
+('MFA_REQUIRED','no','string','no','no','no','Require a second factor (TOTP) from database and LDAP accounts'),
 ('DB_VERSION','{$db_version}','string','no','yes','no','Database version.')";
 
 		$query[] = "INSERT INTO `Script` VALUES ('RackCode','allow {\$userid_1}')";

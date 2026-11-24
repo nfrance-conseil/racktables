@@ -268,6 +268,7 @@ function getConfigDefaults()
 		'SHOW_OBJECTTYPE' => 'yes',
 		'IPV4_TREE_SHOW_UNALLOCATED' => 'yes',
 		'OBJECTLOG_PREVIEW_ENTRIES' => '5',
+		'MFA_REQUIRED' => 'no',
 	);
 }
 

@@ -41,20 +41,35 @@ function authenticate ()
 	// Phase 1. Assert basic pre-requisites, short-circuit the logout request.
 	if (! isset ($user_auth_src) || ! isset ($require_local_account))
 		throw new RackTablesError ('secret.php: either user_auth_src or require_local_account are missing', RackTablesError::MISCONFIGURED);
+	// Database and LDAP accounts log in with a form (see getLoginSessionUser()),
+	// HTTP basic authentication remains as an option for scripts.
+	$form_login = usesLoginForm();
 	if (isset ($_REQUEST['logout']))
 	{
 		if (isset ($user_auth_src) && 'saml' == $user_auth_src)
 			saml_logout ();
+		if ($form_login)
+		{
+			endLoginSession();
+			header ('Location: index.php', TRUE, 303);
+			exit;
+		}
 		throw new RackTablesError ('', RackTablesError::NOT_AUTHENTICATED); // Reset browser credentials cache.
 	}
 	// Phase 2. Do some method-specific processing, initialize $remote_username on success.
-	$checks_password = ! (isset ($script_mode) && $script_mode) && ($user_auth_src == 'database' || $user_auth_src == 'ldap');
+	$checks_password = ! $form_login && ! (isset ($script_mode) && $script_mode) && ($user_auth_src == 'database' || $user_auth_src == 'ldap');
 	if ($checks_password && isLoginThrottled())
 		throw new RackTablesError ('', RackTablesError::NOT_AUTHENTICATED);
 	switch (TRUE)
 	{
 		case isset ($script_mode) && $script_mode && isset ($remote_username) && $remote_username != '':
 			break; // skip this phase
+		case $form_login:
+			$session_displayname = '';
+			$remote_username = getLoginSessionUser ($session_displayname);
+			if ('ldap' == $user_auth_src)
+				constructLDAPOptions();
+			break;
 		case 'database' == $user_auth_src:
 			assertHTTPCredentialsReceived();
 			$remote_username = $_SERVER['PHP_AUTH_USER'];
@@ -89,8 +104,13 @@ function authenticate ()
 	{
 		if ($checks_password)
 			recordLoginFailure();
+		if ($form_login)
+			restartLogin(); // the account was deleted
 		throw new RackTablesError ('', RackTablesError::NOT_AUTHENTICATED);
 	}
+	// A password change ends the other sessions of the account.
+	if ($form_login && isset ($userinfo['user_id']) && ! isLoginSessionPasswordCurrent ($userinfo))
+		restartLogin();
 	$user_given_tags = $userinfo['etags'];
 	$auto_tags = array_merge ($auto_tags, $userinfo['atags']);
 	// Phase 4. Do more method-specific processing, initialize $remote_displayname on success.
@@ -98,6 +118,14 @@ function authenticate ()
 	{
 		case isset ($script_mode) && $script_mode:
 			return; // success
+		// The password (and the second factor) were checked at login.
+		case $form_login:
+			$remote_displayname = $session_displayname != '' ? $session_displayname : $remote_username;
+			assertMFAEnrolledIfRequired ($remote_username);
+			return; // success
+		// HTTP basic authentication cannot ask for a second factor.
+		case $checks_password && NULL !== getUserMFA ($remote_username):
+			break; // failure
 		// Just trust the server, because the password isn't known.
 		case 'httpd' == $user_auth_src:
 			$remote_displayname = $userinfo['user_realname'] != '' ?
@@ -131,6 +159,339 @@ function authenticate ()
 	throw new RackTablesError ('', RackTablesError::NOT_AUTHENTICATED);
 }
 
+// The login form serves database and LDAP accounts, except for the requests
+// that carry HTTP basic credentials when secret.php enables them.
+function usesLoginForm()
+{
+	global $user_auth_src, $script_mode, $allow_http_basic_auth;
+	if (isset ($script_mode) && $script_mode)
+		return FALSE;
+	if ($user_auth_src != 'database' && $user_auth_src != 'ldap')
+		return FALSE;
+	return ! (isset ($allow_http_basic_auth) && $allow_http_basic_auth === TRUE && isset ($_SERVER['PHP_AUTH_USER']));
+}
+
+// Return the user name of the login session, or show the login form (and the
+// second factor form) and stop. The session ends after LOGIN_IDLE_TIMEOUT
+// seconds without request and after LOGIN_MAX_LIFETIME seconds anyway (both
+// can be set in secret.php).
+function getLoginSessionUser (&$displayname)
+{
+	startSession();
+	$now = time();
+	if (isset ($_SESSION['auth']) && is_array ($_SESSION['auth']))
+	{
+		$auth = $_SESSION['auth'];
+		if ($now - $auth['last_seen'] <= LOGIN_IDLE_TIMEOUT && $now - $auth['login_time'] <= LOGIN_MAX_LIFETIME)
+		{
+			if ($now - $auth['last_seen'] >= 60)
+				$_SESSION['auth']['last_seen'] = $now;
+			session_commit();
+			$displayname = $auth['displayname'];
+			return $auth['username'];
+		}
+		unset ($_SESSION['auth']);
+	}
+	processLoginForm(); // does not return
+}
+
+function processLoginForm()
+{
+	global $requestedModule;
+	// Only the HTML pages can show the form.
+	if (isset ($requestedModule) && ! in_array ($requestedModule, array ('interface', 'redirect', 'popup')))
+	{
+		session_commit();
+		header ('HTTP/1.1 401 Unauthorized');
+		header ('Content-Type: text/plain; charset=UTF-8');
+		echo "NAK\nNot authenticated";
+		exit;
+	}
+	$now = time();
+	if (isset ($_SESSION['auth_pending']) && $now - $_SESSION['auth_pending']['time'] > LOGIN_MFA_TIMEOUT)
+		unset ($_SESSION['auth_pending']);
+	if (isset ($_POST['cancel_login']))
+		unset ($_SESSION['auth_pending']);
+	$step = isset ($_SESSION['auth_pending']) ? 'mfa' : 'password';
+	$error = '';
+	if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset ($_POST['rt_login']) && $_POST['rt_login'] == $step)
+	{
+		try
+		{
+			assertCSRFToken();
+		}
+		catch (InvalidRequestArgException $e)
+		{
+			$error = 'The form has expired, please try again.';
+		}
+		if ($error != '')
+			;
+		elseif (isLoginThrottled())
+			$error = 'Too many failed attempts, please try again later.';
+		elseif ($step == 'password')
+		{
+			$username = (string) array_fetch ($_POST, 'username', '');
+			$password = (string) array_fetch ($_POST, 'password', '');
+			$displayname = '';
+			if ($username == '' || $password == '' || ! checkLoginPassword ($username, $password, $displayname))
+			{
+				recordLoginFailure();
+				$error = 'Invalid user name or password.';
+			}
+			elseif (NULL === getUserMFA ($username))
+				completeLogin ($username, $displayname);
+			else
+			{
+				startSession();
+				$_SESSION['auth_pending'] = array ('username' => $username, 'displayname' => $displayname, 'time' => $now);
+				$step = 'mfa';
+			}
+		}
+		else
+		{
+			$pending = $_SESSION['auth_pending'];
+			if (verifyUserTOTP ($pending['username'], (string) array_fetch ($_POST, 'code', '')))
+				completeLogin ($pending['username'], $pending['displayname']);
+			recordLoginFailure();
+			$error = 'Invalid code.';
+		}
+	}
+	session_commit();
+	renderLoginPage ($step, $error);
+	exit;
+}
+
+// Check the password of a database or LDAP account, return the display name.
+function checkLoginPassword ($username, $password, &$displayname)
+{
+	global $user_auth_src, $require_local_account;
+	$userinfo = constructUserCell ($username);
+	if ($require_local_account && ! isset ($userinfo['user_id']))
+		return FALSE;
+	$displayname = $userinfo['user_realname'];
+	// When using LDAP, the administrator account still authenticates locally.
+	if ($user_auth_src == 'database' || (isset ($userinfo['user_id']) && $userinfo['user_id'] == 1))
+		return authenticated_via_database ($userinfo, $password);
+	constructLDAPOptions();
+	$ldap_displayname = '';
+	if (! authenticated_via_ldap ($username, $password, $ldap_displayname))
+		return FALSE;
+	if ($displayname == '')
+		$displayname = $ldap_displayname;
+	return TRUE;
+}
+
+// A new session identifier and anti-CSRF token for the authenticated user,
+// then back to the requested page.
+function completeLogin ($username, $displayname)
+{
+	startSession(); // the password check may have closed it
+	session_regenerate_id (TRUE);
+	unset ($_SESSION['auth_pending'], $_SESSION['csrf_token'], $_SESSION['auth_digest']);
+	// not constructUserCell(): its cache predates the rehash of the password
+	$result = usePreparedSelectBlade ('SELECT user_name, user_password_hash FROM UserAccount WHERE user_name = ?', array ($username));
+	$row = $result->fetch (PDO::FETCH_ASSOC);
+	unset ($result);
+	$now = time();
+	$_SESSION['auth'] = array
+	(
+		'username' => $row === FALSE ? $username : $row['user_name'],
+		'displayname' => $displayname,
+		'login_time' => $now,
+		'last_seen' => $now,
+		'password' => $row === FALSE ? '' : getPasswordFingerprint ($row),
+	);
+	session_commit();
+	header ('Location: ' . getLoginRedirectURL(), TRUE, 303);
+	exit;
+}
+
+// The page to show after the login: the requested one, without the
+// parameters of an operation (its form has expired with the session).
+function getLoginRedirectURL()
+{
+	$params = array();
+	foreach (array ('page', 'tab') as $name)
+		if (isset ($_GET[$name]) && is_string ($_GET[$name]))
+			$params[$name] = $_GET[$name];
+	global $requestedModule;
+	if (isset ($requestedModule) && $requestedModule == 'interface')
+		foreach ($_GET as $name => $value)
+			if (! in_array ($name, array ('csrf_token', 'logout', 'module')) && is_string ($value))
+				$params[$name] = $value;
+	return 'index.php' . (count ($params) ? '?' . http_build_query ($params) : '');
+}
+
+function getPasswordFingerprint ($userinfo)
+{
+	if (! isset ($userinfo['user_password_hash']))
+		return '';
+	return substr (hash ('sha256', (string) $userinfo['user_password_hash']), 0, 16);
+}
+
+function isLoginSessionPasswordCurrent ($userinfo)
+{
+	global $user_auth_src;
+	// LDAP passwords are not known locally (except for the administrator).
+	if ($user_auth_src != 'database' && $userinfo['user_id'] != 1)
+		return TRUE;
+	startROSession();
+	return isset ($_SESSION['auth']['password']) && hash_equals ($_SESSION['auth']['password'], getPasswordFingerprint ($userinfo));
+}
+
+// After a password change by the user, keep the current session.
+function refreshLoginSessionPassword ($new_password_hash)
+{
+	if (isCLIMode() || ! usesLoginForm())
+		return;
+	startSession();
+	if (isset ($_SESSION['auth']))
+		$_SESSION['auth']['password'] = getPasswordFingerprint (array ('user_password_hash' => $new_password_hash));
+	session_commit();
+}
+
+function endLoginSession()
+{
+	startSession();
+	$_SESSION = array();
+	session_regenerate_id (TRUE);
+	session_commit();
+}
+
+function restartLogin()
+{
+	endLoginSession();
+	startSession();
+	processLoginForm();
+}
+
+// With MFA_REQUIRED, a user without a second factor can only enroll one.
+function assertMFAEnrolledIfRequired ($username)
+{
+	if (getConfigVar ('MFA_REQUIRED') != 'yes' || NULL !== getUserMFA ($username))
+		return;
+	global $requestedModule;
+	$page = array_fetch ($_REQUEST, 'page', '');
+	$tab = array_fetch ($_REQUEST, 'tab', '');
+	if (in_array ($requestedModule, array ('interface', 'redirect')) && $page == 'myaccount' && $tab == 'mfa')
+		return;
+	if ($requestedModule == 'chrome')
+		return;
+	if ($requestedModule != 'interface')
+		throw new RTPermissionDenied();
+	header ('Location: index.php?page=myaccount&tab=mfa', TRUE, 303);
+	exit;
+}
+
+function renderLoginPage ($step, $error)
+{
+	header ('Content-Type: text/html; charset=UTF-8');
+	header ('Cache-Control: no-store');
+	$title = htmlspecialchars (getConfigVar ('enterprise') . ' RackTables', ENT_QUOTES, 'UTF-8');
+	$token = htmlspecialchars (getCSRFToken(), ENT_QUOTES, 'UTF-8');
+	echo "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"UTF-8\">";
+	echo "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
+	echo "<title>{$title}: log in</title><style>\n";
+	echo 'body { font-family: sans-serif; background: #f0f0f0; margin: 0; }
+form { max-width: 20em; margin: 10vh auto; background: #fff; padding: 1.5em 2em; border: 1px solid #ccc; border-radius: 4px; }
+h1 { font-size: 1.2em; margin-top: 0; }
+label { display: block; margin-top: 1em; }
+input[type=text], input[type=password] { width: 100%; box-sizing: border-box; padding: .4em; margin-top: .2em; }
+button { margin-top: 1.2em; padding: .4em 1.2em; }
+.error { color: #a00; margin-top: 1em; }
+.cancel { background: none; border: none; color: #33c; text-decoration: underline; padding: 0; margin-left: 1em; cursor: pointer; }
+';
+	echo "</style></head><body>\n<form method=\"post\" autocomplete=\"on\">\n<h1>{$title}</h1>\n";
+	echo "<input type=\"hidden\" name=\"csrf_token\" value=\"{$token}\">\n";
+	echo "<input type=\"hidden\" name=\"rt_login\" value=\"{$step}\">\n";
+	if ($step == 'password')
+	{
+		echo "<label>User name<input type=\"text\" name=\"username\" autocomplete=\"username\" required autofocus></label>\n";
+		echo "<label>Password<input type=\"password\" name=\"password\" autocomplete=\"current-password\" required></label>\n";
+		echo "<button type=\"submit\">Log in</button>\n";
+	}
+	else
+	{
+		echo "<p>Enter the code of your authenticator application.</p>\n";
+		echo "<label>Code<input type=\"text\" name=\"code\" inputmode=\"numeric\" pattern=\"[0-9 ]*\" maxlength=\"7\" autocomplete=\"one-time-code\" required autofocus></label>\n";
+		echo "<button type=\"submit\">Verify</button>";
+		echo "<button type=\"submit\" class=\"cancel\" name=\"cancel_login\" value=\"1\" formnovalidate>Cancel</button>\n";
+	}
+	if ($error != '')
+		echo '<p class="error">' . htmlspecialchars ($error, ENT_QUOTES, 'UTF-8') . "</p>\n";
+	echo "</form>\n</body></html>\n";
+}
+
+// TOTP second factor (RFC 6238: HMAC-SHA1, 30 seconds, 6 digits), as
+// implemented by the common authenticator applications.
+function base32Encode ($bin)
+{
+	$alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+	$bits = '';
+	foreach (str_split ($bin) as $char)
+		$bits .= sprintf ('%08b', ord ($char));
+	$ret = '';
+	foreach (str_split ($bits, 5) as $chunk)
+		$ret .= $alphabet[bindec (str_pad ($chunk, 5, '0'))];
+	return $ret;
+}
+
+function base32Decode ($text)
+{
+	$alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+	$text = strtoupper (preg_replace ('/[\s=]/', '', $text));
+	$bits = '';
+	foreach (str_split ($text) as $char)
+	{
+		if (FALSE === $pos = strpos ($alphabet, $char))
+			throw new InvalidArgException ('text', $text, 'not base32');
+		$bits .= sprintf ('%05b', $pos);
+	}
+	$ret = '';
+	foreach (str_split ($bits, 8) as $byte)
+		if (strlen ($byte) == 8)
+			$ret .= chr (bindec ($byte));
+	return $ret;
+}
+
+function generateTOTPSecret()
+{
+	return base32Encode (random_bytes (20));
+}
+
+function getTOTPCode ($secret, $step, $digits = 6)
+{
+	$hmac = hash_hmac ('sha1', pack ('J', $step), base32Decode ($secret), TRUE);
+	$offset = ord ($hmac[19]) & 0x0f;
+	$value = unpack ('N', substr ($hmac, $offset, 4))[1] & 0x7fffffff;
+	return str_pad ((string) ($value % (10 ** $digits)), $digits, '0', STR_PAD_LEFT);
+}
+
+// Return the time step that the code matches, or FALSE. The codes of the
+// previous and next steps are accepted (clock drift), and a step only once
+// (it must be after $last_step).
+function checkTOTPCode ($secret, $code, $last_step, $now = NULL)
+{
+	$code = preg_replace ('/\s/', '', $code);
+	if (! preg_match ('/^[0-9]{6}$/D', $code))
+		return FALSE;
+	$current = intdiv ($now === NULL ? time() : $now, 30);
+	foreach (array ($current - 1, $current, $current + 1) as $step)
+		if ($step > $last_step && hash_equals (getTOTPCode ($secret, $step), $code))
+			return $step;
+	return FALSE;
+}
+
+function verifyUserTOTP ($username, $code)
+{
+	if (NULL === $mfa = getUserMFA ($username))
+		return FALSE;
+	if (FALSE === $step = checkTOTPCode ($mfa['totp_secret'], $code, $mfa['last_step']))
+		return FALSE;
+	// The update also fails if a concurrent request used the same step.
+	return setUserMFALastStep ($username, $step);
+}
+
 // Merge accumulated tags into a single chain, add location-specific
 // autotags and try getting access clearance. Page and tab are mandatory,
 // operation is optional.
@@ -145,6 +506,10 @@ function permitted ($p = NULL, $t = NULL, $o = NULL, $annex = array())
 		$t = $tabno;
 	if ($o === NULL && $op != '') // $op can be set to empty string
 		$o = $op;
+	// Every user manages the second factor of their own account (it may be
+	// required to use RackTables at all).
+	if ($p == 'myaccount' && $t == 'mfa')
+		return TRUE;
 	$my_auto_tags = $auto_tags;
 	$my_auto_tags[] = array ('tag' => '$page_' . $p);
 	$my_auto_tags[] = array ('tag' => '$tab_' . $t);

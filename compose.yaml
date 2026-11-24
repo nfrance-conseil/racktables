@@ -4,8 +4,8 @@
 #   docker compose up -d --build
 #
 # The web interface listens on http://127.0.0.1:8080/ (RT_HTTP_BIND and
-# RT_HTTP_PORT change that). Put an HTTPS reverse proxy in front of it:
-# RackTables uses HTTP basic authentication.
+# RT_HTTP_PORT change that). Put an HTTPS reverse proxy in front of it: the
+# passwords and the session cookie must not travel in clear text.
 
 name: racktables
 
