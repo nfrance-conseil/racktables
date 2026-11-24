@@ -4960,7 +4960,7 @@ function fetchLDAPCacheRow ($username, $extrasql = '')
 	$row = $result->fetch (PDO::FETCH_ASSOC);
 	if ($row)
 	{
-		$members = unserialize (base64_decode ($row['memberof']), array ('allowed_classes' => FALSE));
+		$members = unserialize (base64_decode ((string) $row['memberof']), array ('allowed_classes' => FALSE));
 		$row['memberof'] = is_array ($members) ? $members : array();
 	}
 	return $row;

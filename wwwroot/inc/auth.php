@@ -66,7 +66,8 @@ function authenticate ()
 			break; // skip this phase
 		case $form_login:
 			$session_displayname = '';
-			$remote_username = getLoginSessionUser ($session_displayname);
+			$session_groups = array();
+			$remote_username = getLoginSessionUser ($session_displayname, $session_groups);
 			if ('ldap' == $user_auth_src)
 				constructLDAPOptions();
 			break;
@@ -121,6 +122,9 @@ function authenticate ()
 		// The password (and the second factor) were checked at login.
 		case $form_login:
 			$remote_displayname = $session_displayname != '' ? $session_displayname : $remote_username;
+			// LDAP group membership as of the login
+			foreach ($session_groups as $autotag)
+				$auto_tags[] = array ('tag' => $autotag);
 			assertMFAEnrolledIfRequired ($remote_username);
 			return; // success
 		// HTTP basic authentication cannot ask for a second factor.
@@ -175,7 +179,7 @@ function usesLoginForm()
 // second factor form) and stop. The session ends after LOGIN_IDLE_TIMEOUT
 // seconds without request and after LOGIN_MAX_LIFETIME seconds anyway (both
 // can be set in secret.php).
-function getLoginSessionUser (&$displayname)
+function getLoginSessionUser (&$displayname, &$groups)
 {
 	startSession();
 	$now = time();
@@ -188,6 +192,7 @@ function getLoginSessionUser (&$displayname)
 				$_SESSION['auth']['last_seen'] = $now;
 			session_commit();
 			$displayname = $auth['displayname'];
+			$groups = $auth['groups'];
 			return $auth['username'];
 		}
 		unset ($_SESSION['auth']);
@@ -233,17 +238,18 @@ function processLoginForm()
 			$username = (string) array_fetch ($_POST, 'username', '');
 			$password = (string) array_fetch ($_POST, 'password', '');
 			$displayname = '';
-			if ($username == '' || $password == '' || ! checkLoginPassword ($username, $password, $displayname))
+			$groups = array();
+			if ($username == '' || $password == '' || ! checkLoginPassword ($username, $password, $displayname, $groups))
 			{
 				recordLoginFailure();
 				$error = 'Invalid user name or password.';
 			}
 			elseif (NULL === getUserMFA ($username))
-				completeLogin ($username, $displayname);
+				completeLogin ($username, $displayname, $groups);
 			else
 			{
 				startSession();
-				$_SESSION['auth_pending'] = array ('username' => $username, 'displayname' => $displayname, 'time' => $now);
+				$_SESSION['auth_pending'] = array ('username' => $username, 'displayname' => $displayname, 'groups' => $groups, 'time' => $now);
 				$step = 'mfa';
 			}
 		}
@@ -251,7 +257,7 @@ function processLoginForm()
 		{
 			$pending = $_SESSION['auth_pending'];
 			if (verifyUserTOTP ($pending['username'], (string) array_fetch ($_POST, 'code', '')))
-				completeLogin ($pending['username'], $pending['displayname']);
+				completeLogin ($pending['username'], $pending['displayname'], $pending['groups']);
 			recordLoginFailure();
 			$error = 'Invalid code.';
 		}
@@ -261,10 +267,11 @@ function processLoginForm()
 	exit;
 }
 
-// Check the password of a database or LDAP account, return the display name.
-function checkLoginPassword ($username, $password, &$displayname)
+// Check the password of a database or LDAP account, return the display name
+// and the LDAP groups (as autotags).
+function checkLoginPassword ($username, $password, &$displayname, &$groups)
 {
-	global $user_auth_src, $require_local_account;
+	global $user_auth_src, $require_local_account, $auto_tags;
 	$userinfo = constructUserCell ($username);
 	if ($require_local_account && ! isset ($userinfo['user_id']))
 		return FALSE;
@@ -274,8 +281,11 @@ function checkLoginPassword ($username, $password, &$displayname)
 		return authenticated_via_database ($userinfo, $password);
 	constructLDAPOptions();
 	$ldap_displayname = '';
+	$tags_before = count ($auto_tags);
 	if (! authenticated_via_ldap ($username, $password, $ldap_displayname))
 		return FALSE;
+	foreach (array_slice ($auto_tags, $tags_before) as $taginfo)
+		$groups[] = $taginfo['tag'];
 	if ($displayname == '')
 		$displayname = $ldap_displayname;
 	return TRUE;
@@ -283,7 +293,7 @@ function checkLoginPassword ($username, $password, &$displayname)
 
 // A new session identifier and anti-CSRF token for the authenticated user,
 // then back to the requested page.
-function completeLogin ($username, $displayname)
+function completeLogin ($username, $displayname, $groups)
 {
 	startSession(); // the password check may have closed it
 	session_regenerate_id (TRUE);
@@ -297,6 +307,7 @@ function completeLogin ($username, $displayname)
 	(
 		'username' => $row === FALSE ? $username : $row['user_name'],
 		'displayname' => $displayname,
+		'groups' => $groups,
 		'login_time' => $now,
 		'last_seen' => $now,
 		'password' => $row === FALSE ? '' : getPasswordFingerprint ($row),
@@ -890,7 +901,7 @@ function queryLDAPServer ($username, $password)
 
 	$last_successful_server = loadScript ('LDAPLastSuccessfulServer');
 	$success_server = NULL;
-	$servers = preg_split ("/\s+/", $LDAP_options['server'], NULL, PREG_SPLIT_NO_EMPTY);
+	$servers = preg_split ("/\s+/", $LDAP_options['server'], -1, PREG_SPLIT_NO_EMPTY);
 	if (isset ($last_successful_server) && in_array ($last_successful_server, $servers))	// Cached server is still present in config ?
 	{
 		// Use last successful server first
@@ -903,11 +914,13 @@ function queryLDAPServer ($username, $password)
 		$connect = @ldap_connect (LDAPServerURI ($server, array_fetch ($LDAP_options, 'port', 389)));
 		if ($connect === FALSE)
 			continue;
+		// LDAPv2 is obsolete (RFC 3494), $LDAP_options['options'] may still override this.
+		ldap_set_option ($connect, LDAP_OPT_PROTOCOL_VERSION, 3);
 		ldap_set_option ($connect, LDAP_OPT_NETWORK_TIMEOUT, array_fetch ($LDAP_options, 'server_alive_timeout', 2));
 		// If use_tls configuration option is set, then try establish TLS session instead of ldap_bind
 		if ($LDAP_options['use_tls'] >= 1 && 0 !== stripos ($server, 'ldaps://'))
 		{
-			$tls = ldap_start_tls ($connect);
+			$tls = @ldap_start_tls ($connect);
 			if ($LDAP_options['use_tls'] >= 2 && $tls == FALSE)
 			{
 				if (in_array (ldap_errno ($connect), $ldap_cant_connect_codes))
@@ -926,6 +939,7 @@ function queryLDAPServer ($username, $password)
 				// Cleanup after check. This connection will be used below
 				@ldap_unbind ($connect);
 				$connect = ldap_connect (LDAPServerURI ($server, array_fetch ($LDAP_options, 'port', 389)));
+				ldap_set_option ($connect, LDAP_OPT_PROTOCOL_VERSION, 3);
 				break;
 			}
 		}

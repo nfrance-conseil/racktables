@@ -229,6 +229,8 @@ HTTP basic authentication (sessions end after LOGIN_IDLE_TIMEOUT and
 LOGIN_MAX_LIFETIME seconds). Users can enable a TOTP second factor in "My
 account", and the MFA_REQUIRED option makes it mandatory. Scripts that send
 HTTP basic credentials need $allow_http_basic_auth = TRUE; in secret.php.
+
+LDAP connections use the protocol version 3 by default.
 ENDOFTEXT
 ,
 );

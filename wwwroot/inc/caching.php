@@ -18,12 +18,12 @@ define ('CACHE_DURATION', 604800); // 7 * 24 * 3600
 // returns TRUE on cache-hit, FALSE otherwise. Calling side should call exit if the result is TRUE.
 function checkCachedResponse ($creation_ts, $expire)
 {
-	$client_time = HTTPDateToUnixTime (@$_SERVER['HTTP_IF_MODIFIED_SINCE']);
+	$client_time = HTTPDateToUnixTime ((string) array_fetch ($_SERVER, 'HTTP_IF_MODIFIED_SINCE', ''));
 	$server_time = time();
 	$result =
 	(
 		$client_time !== FALSE && $client_time !== -1 && // IMS header is readable
-		! in_array ('no-cache', preg_split ('/\s*,\s*/', @$_SERVER['HTTP_CACHE_CONTROL'])) && // no-cache parameter unset
+		! in_array ('no-cache', preg_split ('/\s*,\s*/', (string) array_fetch ($_SERVER, 'HTTP_CACHE_CONTROL', ''))) && // no-cache parameter unset
 		$client_time <= $server_time && // not in future
 		$client_time >= $creation_ts && // not modified since
 		(! $expire || $client_time + $expire >= $server_time) // expiration timeout is not set, or not expired
