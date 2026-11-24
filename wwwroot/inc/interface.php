@@ -108,7 +108,9 @@ function renderInterfaceHTML ($pageno, $tabno, $payload)
 	showLogoutURL();
 	echo '">logout</a> ]</div>'; // greeting
 	echo getConfigVar ('enterprise') . ' RackTables ';
-	echo '<a href="https://racktables.org/" title="Visit RackTables site">' . CODE_VERSION . '</a>';
+	// The version tells which vulnerabilities apply, show it to administrators only.
+	if (permitted ('config', 'default'))
+		echo '<a href="https://racktables.org/" title="Visit RackTables site">' . CODE_VERSION . '</a>';
 	renderQuickLinks();
 	echo '</div>'; // mainheader
 	echo '<div class=menubar>';

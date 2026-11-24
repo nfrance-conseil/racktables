@@ -593,11 +593,16 @@ function queryTerminal ($object_id, $commands, $tolerate_remote_errors = TRUE)
 		'sudo_user' => NULL,
 		'identity_file' => NULL,
 		'tolerate_remote_errors' => $tolerate_remote_errors,
+		// telnet and netcat send the commands and the credentials in clear
+		// text, terminal_settings() must allow them explicitly.
+		'allow_cleartext' => FALSE,
 	);
 
 	// override default settings
 	if (is_callable ('terminal_settings'))
 		call_user_func ('terminal_settings', $objectInfo, array (&$settings));
+	if (in_array ($settings['protocol'], array ('telnet', 'netcat')) && $settings['allow_cleartext'] !== TRUE)
+		throw new RTGatewayError ("protocol {$settings['protocol']} is clear text, use ssh or set 'allow_cleartext' to TRUE in terminal_settings()");
 	// make gateway-specific CLI params out of settings
 	$params = callHook ('makeGatewayParams', $object_id, array (&$settings), array (&$commands));
 	// call gateway

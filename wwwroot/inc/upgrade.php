@@ -205,6 +205,13 @@ emptied by the upgrade for the same reason.
 Requests that modify data now require an anti-CSRF token: scripts that used
 to send such requests directly to index.php?module=redirect must first fetch
 a page to obtain the token of their session.
+
+Live device queries no longer use telnet or netcat unless terminal_settings()
+sets 'allow_cleartext' to TRUE for the device: these protocols send the
+commands and the credentials in clear text, prefer ssh.
+
+The RackTables version is displayed only to users allowed to open the
+Configuration page.
 ENDOFTEXT
 ,
 );
