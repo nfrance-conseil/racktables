@@ -56,8 +56,8 @@ function renderUserListEditor ()
 		else
 			echo getOpLink (array ('op' => 'deleteUser', 'id' => $account['user_id']), '', 'destroy', 'delete user account');
 		echo '</td>';
-		echo "<td><input type=text name=username value='{$account['user_name']}' size=16></td>";
-		echo "<td><input type=text name=realname value='{$account['user_realname']}' size=24></td>";
+		echo "<td><input type=text name=username value='" . stringForTextInputValue ($account['user_name'], 0) . "' size=16></td>";
+		echo "<td><input type=text name=realname value='" . stringForTextInputValue ($account['user_realname'], 0) . "' size=24></td>";
 		echo "<td><input type=password name=password size=40></td><td>";
 		printImageHREF ('save', 'Save changes', TRUE);
 		echo '</td></form></tr>';
@@ -73,8 +73,8 @@ function renderUser ($user_id)
 	$userinfo = spotEntity ('user', $user_id);
 
 	$summary = array();
-	$summary['Account name'] = $userinfo['user_name'];
-	$summary['Real name'] = $userinfo['user_realname'];
+	$summary['Account name'] = stringForLabel ($userinfo['user_name'], 0);
+	$summary['Real name'] = stringForLabel ($userinfo['user_realname'], 0);
 	$summary['tags'] = '';
 	renderEntitySummary ($userinfo, 'summary', $summary);
 
@@ -151,7 +151,7 @@ function verify()
 			else
 			{
 				$("#SaveChanges")[0].disabled = "disabled";
-				$("#ShowMessage")[0].innerHTML = arr[1];
+				$("#ShowMessage")[0].textContent = arr[1];
 				$("#ShowMessage")[0].className = "msg_warning";
 			}
 		}
@@ -202,7 +202,7 @@ function renderObjectParentCompatViewer()
 			$order = $nextorder[$order];
 			$last_left_parent_id = $pair['parent_objtype_id'];
 		}
-		echo "<tr class=row_{$order}><td>{$pair['parent_name']}</td><td>{$pair['child_name']}</td></tr>\n";
+		echo "<tr class=row_{$order}><td>" . stringForLabel ($pair['parent_name'], 0) . "</td><td>" . stringForLabel ($pair['child_name'], 0) . "</td></tr>\n";
 	}
 	echo '</table>';
 }
@@ -243,7 +243,7 @@ function renderObjectParentCompatEditor()
 			printImageHREF ('nodelete', $pair['count'] . ' relationship(s) stored');
 		else
 			echo getOpLink (array ('op' => 'del', 'parent_objtype_id' => $pair['parent_objtype_id'], 'child_objtype_id' => $pair['child_objtype_id']), '', 'delete', 'remove pair');
-		echo "</td><td class=tdleft>{$pair['parent_name']}</td><td class=tdleft>{$pair['child_name']}</td></tr>\n";
+		echo "</td><td class=tdleft>" . stringForLabel ($pair['parent_name'], 0) . "</td><td class=tdleft>" . stringForLabel ($pair['child_name'], 0) . "</td></tr>\n";
 	}
 	if (getConfigVar ('ADDNEW_AT_TOP') != 'yes')
 		printNewitemTR();
@@ -264,7 +264,7 @@ function renderOIFCompatViewer()
 			$order = $nextorder[$order];
 			$last_left_oif_id = $pair['type1'];
 		}
-		echo "<tr class=row_{$order}><td>{$pair['type1name']}</td><td>{$pair['type2name']}</td></tr>";
+		echo "<tr class=row_{$order}><td>" . stringForLabel ($pair['type1name'], 0) . '</td><td>' . stringForLabel ($pair['type2name'], 0) . '</td></tr>';
 	}
 	echo '</table>';
 }
@@ -315,7 +315,7 @@ function renderOIFCompatEditor()
 		}
 		echo "<tr class=row_{$order}><td>";
 		echo getOpLink (array ('op' => 'del', 'type1' => $pair['type1'], 'type2' => $pair['type2']), '', 'delete', 'remove pair');
-		echo "</td><td class=tdleft>{$pair['type1name']}</td><td class=tdleft>{$pair['type2name']}</td></tr>";
+		echo '</td><td class=tdleft>' . stringForLabel ($pair['type1name'], 0) . '</td><td class=tdleft>' . stringForLabel ($pair['type2name'], 0) . '</td></tr>';
 	}
 	if (getConfigVar ('ADDNEW_AT_TOP') != 'yes')
 		printNewitemTR();
@@ -359,7 +359,7 @@ function renderIIFOIFCompatEditor()
 		echo "<tr><th>&nbsp;</th><th colspan=2>{$packinfo['title']}</th></tr>";
 		foreach ($packinfo['iif_ids'] as $iif_id)
 		{
-			echo "<tr class=row_{$order}><th class=tdleft>" . $iif[$iif_id] . '</th><td>';
+			echo "<tr class=row_{$order}><th class=tdleft>" . stringForLabel ($iif[$iif_id], 0) . '</th><td>';
 			echo getOpLink (array ('op' => 'addPack', 'standard' => $codename, 'iif_id' => $iif_id), '', 'add');
 			echo '</td><td>';
 			echo getOpLink (array ('op' => 'delPack', 'standard' => $codename, 'iif_id' => $iif_id), '', 'delete');
@@ -603,7 +603,7 @@ function renderEditAttrMapForm ()
 	{
 		if (!count ($attr['application']))
 			continue;
-		echo "<tr class=row_{$order}><td class=tdleft>{$attr['name']}</td>";
+		echo "<tr class=row_{$order}><td class=tdleft>" . stringForLabel ($attr['name'], 0) . "</td>";
 		echo "<td class=tdleft>" . $attrtypes[$attr['type']] . "</td><td colspan=2 class=tdleft>";
 		foreach ($attr['application'] as $app)
 		{
@@ -615,9 +615,9 @@ function renderEditAttrMapForm ()
 				echo getOpLink (array('op'=>'del', 'attr_id'=>$attr['id'], 'objtype_id'=>$app['objtype_id']), '', 'delete', 'Remove mapping');
 			echo ' ';
 			if ($attr['type'] == 'dict')
-				echo decodeObjectType ($app['objtype_id']) . " (values from '" . stringForLabel ($app['chapter_name'], 0) . "')<br>";
+				echo stringForLabel (decodeObjectType ($app['objtype_id']), 0) . " (values from '" . stringForLabel ($app['chapter_name'], 0) . "')<br>";
 			else
-				echo decodeObjectType ($app['objtype_id']) . '<br>';
+				echo stringForLabel (decodeObjectType ($app['objtype_id']), 0) . '<br>';
 		}
 		echo "</td></tr>";
 		$order = $nextorder[$order];
@@ -777,7 +777,7 @@ function renderChapterEditor ($tgt_chapter_no)
 		if ($key < 50000)
 		{
 			printImageHREF ('computer');
-			echo "</td><td class=tdright>{$key}</td><td>&nbsp;</td><td>{$value}</td><td>&nbsp;</td></tr>";
+			echo "</td><td class=tdright>{$key}</td><td>&nbsp;</td><td>" . stringForLabel ($value, 0) . "</td><td>&nbsp;</td></tr>";
 			continue;
 		}
 		printOpFormIntro ('upd', array ('dict_key' => $key));
@@ -803,7 +803,7 @@ function renderChapterEditor ($tgt_chapter_no)
 function renderConfigVarName ($v)
 {
 	echo '<span class="varname">' . $v['varname'] . '</span>';
-	echo '<p class="vardescr">' . $v['description'] . ($v['is_userdefined'] == 'yes' ? '' : ' (system-wide)') . '</p>';
+	echo '<p class="vardescr">' . stringForLabel ($v['description'], 0) . ($v['is_userdefined'] == 'yes' ? '' : ' (system-wide)') . '</p>';
 }
 
 function renderUIConfig ()
@@ -819,7 +819,7 @@ function renderUIConfig ()
 		echo "<td nowrap valign=top class=tdright>";
 		renderConfigVarName ($v);
 		echo '</td>';
-		echo "<td valign=top class=tdleft>{$v['varvalue']}</td></tr>";
+		echo '<td valign=top class=tdleft>' . stringForLabel ($v['varvalue'], 0) . '</td></tr>';
 	}
 	echo "</table>\n";
 	finishPortlet();
@@ -1139,8 +1139,8 @@ function renderMyAccount ()
 	startPortlet ('Current user info');
 	echo '<div style="text-align: left; display: inline-block;">';
 	echo "<table>";
-	echo "<tr><th>Login:</th><td>{$remote_username}</td></tr>\n";
-	echo "<tr><th>Name:</th><td>{$remote_displayname}</td></tr>\n";
+	echo '<tr><th>Login:</th><td>' . stringForLabel ($remote_username, 0) . "</td></tr>\n";
+	echo '<tr><th>Name:</th><td>' . stringForLabel ($remote_displayname, 0) . "</td></tr>\n";
 	echo "<tr><th>Explicit tags:</th><td>" . serializeTags (getExplicitTagsOnly ($expl_tags)) . "</td></tr>\n";
 	echo "<tr><th>Implicit tags:</th><td>" . serializeTags ($impl_tags) . "</td></tr>\n";
 	echo "<tr><th>Automatic tags:</th><td>" . serializeTags ($auto_tags) . "</td></tr>\n";

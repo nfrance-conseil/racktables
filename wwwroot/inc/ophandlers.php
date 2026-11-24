@@ -770,8 +770,6 @@ function editPortForObject ()
 	setFuncMessages (__FUNCTION__, array ('OK' => 6));
 	global $sic;
 	$port_id = genericAssertion ('port_id', 'natural');
-	// Like addPortForObject(), store the HTML-escaped name and label (the views
-	// output them as is).
 	genericAssertion ('name', 'string');
 	genericAssertion ('label', 'string0');
 	try
@@ -848,7 +846,7 @@ function addMultiPorts ()
 		}
 		catch (InvalidArgException $iae)
 		{
-			showError ($iae->getMessage());
+			showError (stringForLabel ($iae->getMessage(), 0));
 		}
 	}
 	showFuncMessage (__FUNCTION__, 'OK', array ($added_count, $updated_count, $error_count));
@@ -913,7 +911,7 @@ function addIPAllocation ()
 	$address = getIPAddress($ip_bin);
 
 	if(!empty($address['allocs']) && ( ($address['allocs'][0]['type'] != 'shared') || ($alloc_type != 'shared') ) )
-		showWarning("IP ".ip_format($ip_bin)." already in use by ".$address['allocs'][0]['object_name']." - ".$address['allocs'][0]['name']);
+		showWarning ("IP " . ip_format ($ip_bin) . " already in use by " . stringForLabel ($address['allocs'][0]['object_name'], 0) . " - " . stringForLabel ($address['allocs'][0]['name'], 0));
 
 	if (getConfigVar ('IPV4_JAYWALK') != 'yes' && NULL === getIPAddressNetworkId ($ip_bin))
 	{
@@ -923,11 +921,10 @@ function addIPAllocation ()
 
 	if($address['reserved'] && $address['name'] != '')
 	{
-		showWarning("IP ".ip_format($ip_bin)." reservation \"".$address['name']."\" is removed");
+		showWarning ("IP " . ip_format ($ip_bin) . " reservation \"" . stringForLabel ($address['name'], 0) . "\" is removed");
 		//TODO ask to take reserved IP or not !
 	}
 
-	// Like updIPAllocation(), store the HTML-escaped form (the views output it as is).
 	assertStringArg ('bond_name', TRUE);
 	bindIPToObject
 	(
@@ -1070,7 +1067,6 @@ function createUser ()
 	assertStringArg ('realname', TRUE);
 	assertStringArg ('password');
 	$username = $_REQUEST['username'];
-	// The HTTP authentication checks the password as typed, not HTML-escaped.
 	$password = makePasswordHash (genericAssertion ('password', 'string'));
 	$user_id = commitCreateUserAccount ($username, $_REQUEST['realname'], $password);
 	if (isset ($_REQUEST['taglist']))
@@ -1081,8 +1077,6 @@ function createUser ()
 function updateUser ()
 {
 	setFuncMessages (__FUNCTION__, array ('OK' => 6));
-	// Like createUser(), store the HTML-escaped form: authenticate() compares
-	// the user name with the escaped value of PHP_AUTH_USER.
 	assertStringArg ('username');
 	assertStringArg ('realname', TRUE);
 	$username = $_REQUEST['username'];
@@ -1137,7 +1131,7 @@ function clearSticker ()
 	else
 	{
 		$oldvalues = getAttrValues (getBypassValue());
-		showError ('Permission denied, "' . $oldvalues[$attr_id]['name'] . '" left unchanged');
+		showError ('Permission denied, "' . stringForLabel ($oldvalues[$attr_id]['name'], 0) . '" left unchanged');
 	}
 }
 
@@ -1175,7 +1169,7 @@ function processGridForm (&$rackData, $unchecked_state, $checked_state, $object_
 				!($state == $unchecked_state && $newstate == $checked_state)
 			)
 			{
-				showError ("{$rack_name}: Rack ID {$rack_id}, unit {$unit_no}, 'atom {$atom}', cannot change state from '{$state}' to '{$newstate}'");
+				showError (stringForLabel ($rack_name, 0) . ": Rack ID {$rack_id}, unit {$unit_no}, 'atom {$atom}', cannot change state from '{$state}' to '{$newstate}'");
 				$dbxlink->rollBack();
 				return FALSE;
 			}
@@ -1362,7 +1356,7 @@ function updateObjectAttributes ($object_id)
 			if (permitted (NULL, NULL, NULL, array (array ('tag' => '$attr_' . $attr_id))))
 				commitUpdateAttrValue ($object_id, $attr_id);
 			else
-				showError ('Permission denied, "' . $oldvalues[$attr_id]['name'] . '" left unchanged');
+				showError ('Permission denied, "' . stringForLabel ($oldvalues[$attr_id]['name'], 0) . '" left unchanged');
 			continue;
 		}
 
@@ -1406,7 +1400,7 @@ function updateObjectAttributes ($object_id)
 		if (permitted (NULL, NULL, NULL, array (array ('tag' => '$attr_' . $attr_id))))
 			commitUpdateAttrValue ($object_id, $attr_id, $value);
 		else
-			showError ('Permission denied, "' . $oldvalues[$attr_id]['name'] . '" left unchanged');
+			showError ('Permission denied, "' . stringForLabel ($oldvalues[$attr_id]['name'], 0) . '" left unchanged');
 	}
 }
 
@@ -1438,7 +1432,7 @@ function addMultipleObjects()
 		}
 		catch (RTDatabaseError $e)
 		{
-			showError ("Error creating object '$name': " . $e->getMessage());
+			showError ('Error creating object ' . stringForLabel ("'$name': " . $e->getMessage(), 0));
 		}
 	}
 }
@@ -1461,7 +1455,7 @@ function addLotOfObjects()
 		}
 		catch (RackTablesError $e)
 		{
-			showError ("Failed to add object '$name': " . $e->getMessage());
+			showError ('Failed to add object ' . stringForLabel ("'$name': " . $e->getMessage(), 0));
 		}
 }
 
@@ -1693,7 +1687,7 @@ function deleteVS()
 		return;
 	}
 	commitDeleteVSG ($vsinfo['id']);
-	showSuccess (formatEntityName ($vsinfo) . ' deleted');
+	showSuccess (stringForLabel (formatEntityName ($vsinfo), 0) . ' deleted');
 	return buildRedirectURL ('ipv4slb', 'vs');
 }
 
@@ -2213,7 +2207,7 @@ function addLocation ()
 	$location_id = commitAddObject ($_REQUEST['name'], NULL, 1562, NULL);
 	if (0 != $parent_id = genericAssertion ('parent_id', 'unsigned'))
 		commitLinkEntities ('location', $parent_id, 'location', $location_id);
-	showSuccess ('added location ' . mkA ($_REQUEST['name'], 'location', $location_id));
+	showSuccess ('added location ' . mkA (stringForLabel ($_REQUEST['name'], 0), 'location', $location_id));
 }
 
 // This function is used by two forms:
@@ -2286,7 +2280,7 @@ function addRow ()
 	$row_id = commitAddObject ($_REQUEST['name'], NULL, 1561, NULL);
 	if ($location_id)
 		commitLinkEntities ('location', $location_id, 'row', $row_id);
-	showSuccess ('added row ' . mkA ($_REQUEST['name'], 'row', $row_id));
+	showSuccess ('added row ' . mkA (stringForLabel ($_REQUEST['name'], 0), 'row', $row_id));
 }
 
 // This function is used by two forms:
@@ -2517,7 +2511,7 @@ function addFileWithoutLink ()
 	$file_id = commitAddFile ($_FILES['file']['name'], $_FILES['file']['type'], $fp, genericAssertion ('comment', 'string0'));
 	if (isset ($_REQUEST['taglist']))
 		produceTagsForNewRecord ('file', $_REQUEST['taglist'], $file_id);
-	showFuncMessage (__FUNCTION__, 'OK', array (htmlspecialchars ($_FILES['file']['name'])));
+	showFuncMessage (__FUNCTION__, 'OK', array ($_FILES['file']['name']));
 }
 
 function addFileToEntity ()
@@ -2553,7 +2547,7 @@ function addFileToEntity ()
 			'entity_id' => getBypassValue(),
 		)
 	);
-	showFuncMessage (__FUNCTION__, 'OK', array (htmlspecialchars ($_FILES['file']['name'])));
+	showFuncMessage (__FUNCTION__, 'OK', array ($_FILES['file']['name']));
 }
 
 function linkFileToEntity ()
@@ -2570,7 +2564,7 @@ function linkFileToEntity ()
 			'entity_id' => getBypassValue(),
 		)
 	);
-	showFuncMessage (__FUNCTION__, 'OK', array (htmlspecialchars ($fi['name'])));
+	showFuncMessage (__FUNCTION__, 'OK', array ($fi['name']));
 }
 
 function replaceFile ()
@@ -2588,7 +2582,7 @@ function replaceFile ()
 	}
 	commitReplaceFile ($shortInfo['id'], $fp);
 
-	showFuncMessage (__FUNCTION__, 'OK', array (htmlspecialchars ($shortInfo['name'])));
+	showFuncMessage (__FUNCTION__, 'OK', array ($shortInfo['name']));
 }
 
 function unlinkFile ()
@@ -2616,7 +2610,7 @@ function deleteFile ()
 	$file_id = genericAssertion ('file_id', 'natural');
 	$shortInfo = spotEntity ('file', $file_id);
 	commitDeleteFile ($file_id);
-	showFuncMessage (__FUNCTION__, 'OK', array (htmlspecialchars ($shortInfo['name'])));
+	showFuncMessage (__FUNCTION__, 'OK', array ($shortInfo['name']));
 }
 
 function updateFileText ()
@@ -2629,7 +2623,7 @@ function updateFileText ()
 		return;
 	}
 	commitReplaceFile ($shortInfo['id'], genericAssertion ('file_text', 'string0'));
-	showFuncMessage (__FUNCTION__, 'OK', array (htmlspecialchars ($shortInfo['name'])));
+	showFuncMessage (__FUNCTION__, 'OK', array ($shortInfo['name']));
 }
 
 function addIIFOIFCompatPack ()
@@ -3248,7 +3242,7 @@ function autoPopulateUCS()
 	}
 	catch (RTGatewayError $e)
 	{
-		showError ($e->getMessage());
+		showError (stringForLabel ($e->getMessage(), 0));
 		return;
 	}
 	foreach ($contents as $item)
@@ -3309,7 +3303,7 @@ function autoPopulateUCS()
 			}
 			catch (InvalidArgException $iae)
 			{
-				showError ($iae->getMessage());
+				showError (stringForLabel ($iae->getMessage(), 0));
 			}
 			break;
 		case 'ComputeRackUnit':
@@ -3331,7 +3325,7 @@ function autoPopulateUCS()
 			break;
 		}
 	} # endfor
-	showSuccess ("Auto-populated UCS Domain '{$oinfo['name']}' with {$done} items");
+	showSuccess ("Auto-populated UCS Domain '" . stringForLabel ($oinfo['name'], 0) . "' with {$done} items");
 }
 
 function cleanupUCS()
@@ -3348,7 +3342,7 @@ function cleanupUCS()
 		# use HW type to decide if the object was produced by autoPopulateUCS()
 		if (! array_key_exists (2, $attrs) || ! in_array ($attrs[2]['key'], $ucsproductmap))
 		{
-			showWarning ('Contained object ' . mkA ($o['dname'], 'object', $item_id) . ' is not an automatic UCS object');
+			showWarning ('Contained object ' . mkA (stringForLabel ($o['dname'], 0), 'object', $item_id) . ' is not an automatic UCS object');
 			$clear = FALSE;
 		}
 	}
@@ -3364,7 +3358,7 @@ function cleanupUCS()
 		commitDeleteObject ($item_id);
 		$done++;
 	}
-	showSuccess ("Removed {$done} items from UCS Domain '{$oinfo['name']}'");
+	showSuccess ("Removed {$done} items from UCS Domain '" . stringForLabel ($oinfo['name'], 0) . "'");
 }
 
 function getOpspec()
@@ -3683,7 +3677,7 @@ function renameObjectPorts()
 			}
 			catch (InvalidArgException $iae)
 			{
-				showError ($iae->getMessage());
+				showError (stringForLabel ($iae->getMessage(), 0));
 			}
 		}
 	}
@@ -3751,7 +3745,7 @@ function installPlugin ()
 	}
 	catch (Exception $e)
 	{
-		showError ('Install failed: ' . $e->getMessage());
+		showError ('Install failed: ' . stringForLabel ($e->getMessage(), 0));
 		return;
 	}
 	showSuccess ('Installed plugin: ' . $name);
@@ -3769,7 +3763,7 @@ function uninstallPlugin ()
 	}
 	catch (Exception $e)
 	{
-		showError ('Uninstall failed: ' . $e->getMessage());
+		showError ('Uninstall failed: ' . stringForLabel ($e->getMessage(), 0));
 		return;
 	}
 	showSuccess ('Uninstalled plugin: ' . $name);
@@ -3795,7 +3789,7 @@ function upgradePlugin ()
 	}
 	catch (Exception $e)
 	{
-		showError ('Upgrade failed: ' . $e->getMessage());
+		showError ('Upgrade failed: ' . stringForLabel ($e->getMessage(), 0));
 		return;
 	}
 	showSuccess ('Upgraded plugin: ' . $name);

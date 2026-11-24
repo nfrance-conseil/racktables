@@ -61,7 +61,7 @@ function renderSystemReports ()
 		if (count (getPortIIFStats ($iif_id)))
 			$tmp[] = array
 			(
-				'title' => "{$iif_name} ports",
+				'title' => stringForLabel ($iif_name, 0) . ' ports',
 				'type' => 'meters',
 				'func' => 'getPortIIFStats',
 				'args' => $iif_id,
@@ -171,7 +171,7 @@ function renderReports ($what)
 					$data = $item['func'] ();
 				foreach ($data as $meter)
 				{
-					echo "<tr><td class=tdright>{$meter['title']}:</td><td class=tdleft>";
+					echo '<tr><td class=tdright>' . stringForLabel ($meter['title'], 0) . ':</td><td class=tdleft>';
 					renderProgressBar ($meter['max'] ? $meter['current'] / $meter['max'] : 0);
 					echo ' <small>' . ($meter['max'] ? $meter['current'] . '/' . $meter['max'] : '0') . '</small></td></tr>';
 				}
@@ -230,7 +230,7 @@ function renderExpirations ()
 	$attrmap = getAttrMap();
 	foreach ($expirations as $attr_id => $sections)
 	{
-		startPortlet ($attrmap[$attr_id]['name']);
+		startPortlet (stringForLabel ($attrmap[$attr_id]['name'], 0));
 		foreach ($sections as $section)
 		{
 			$count = 1;
@@ -257,7 +257,7 @@ function renderExpirations ()
 				echo '<tr class=' . $section['class'] . $order . ' valign=top>';
 				echo "<td class=tdright>{$count}</td>";
 				echo '<td class=tdleft>' . mkCellA ($object) . '</td>';
-				echo "<td class=tdleft>{$object['asset_no']}</td>";
+				echo "<td class=tdleft>" . stringForLabel ($object['asset_no'], 0) . "</td>";
 				echo "<td class=tdleft>{$oem_sn_1}</td>";
 				echo "<td>{$date_value}</td>";
 				echo "</tr>\n";
@@ -817,9 +817,9 @@ function renderDataIntegrityReport ()
 		{
 			echo '<tr>';
 			echo "<td class=tdright>{$invalid['id']}</td>";
-			echo "<td>{$invalid['name']}</td>";
+			echo "<td>" . stringForLabel ($invalid['name'], 0) . "</td>";
 			echo "<td class=tdright>{$invalid['parent_id']}</td>";
-			echo "<td>{$invalid['parent_name']}</td>";
+			echo "<td>" . stringForLabel ($invalid['parent_name'], 0) . "</td>";
 			echo "</tr>\n";
 		}
 		echo "</table>\n";

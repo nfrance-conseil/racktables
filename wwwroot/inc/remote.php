@@ -618,7 +618,7 @@ function queryTerminal ($object_id, $commands, $tolerate_remote_errors = TRUE)
 	elseif ($errors != '') // ssh and tolerate and non-empty $errors
 		foreach (explode ("\n", $errors) as $line)
 			if ($line != '' && ! $hide_warnings)
-				showWarning ("{$settings['protocol']} {$settings['hostname']}: $line");
+				showWarning (stringForLabel ("{$settings['protocol']} {$settings['hostname']}: $line", 0));
 	return strtr($out, array("\r" => "")); // cut ^M symbols
 }
 

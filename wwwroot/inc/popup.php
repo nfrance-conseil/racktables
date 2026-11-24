@@ -137,7 +137,7 @@ INNER JOIN (
 				}
 			$rows_by_pn = array();
 		}
-		$prev_object_id = $row['object_id'];
+		$prev_object_id = $row ? $row['object_id'] : NULL;
 		if ($row)
 			$rows_by_pn[$row['name']][] = $row;
 		else
@@ -269,7 +269,7 @@ function handlePopupPortLink()
 			{
 				$heaps = getPatchCableHeapSummary();
 				if (commitModifyPatchCableAmount ($heap_id, -1))
-					showSuccess ('consumed a patch cable from ' . formatPatchCableHeapAsPlainText ($heaps[$heap_id]));
+					showSuccess ('consumed a patch cable from ' . stringForLabel (formatPatchCableHeapAsPlainText ($heaps[$heap_id]), 0));
 				else
 					showError ('failed to consume a patch cable');
 			}
@@ -342,24 +342,24 @@ END
 		echo formatPort ($port_info) . ' ';
 		if ($port_info['iif_id'] == 1)
 		{
-			echo formatPortIIFOIF ($port_info);
+			echo stringForLabel (formatPortIIFOIF ($port_info), 0);
 			echo '<input type=hidden name="port_type" value="' . $port_info['oif_id'] . '">';
 		}
 		else
 		{
-			echo '<label>' . $port_info['iif_name'] . ' ';
+			echo '<label>' . stringForLabel ($port_info['iif_name'], 0) . ' ';
 			printSelect (getExistingPortTypeOptions ($port_info), array ('class' => 'porttype', 'name' => 'port_type'), $type_local);
 			echo '</label>';
 		}
 		echo ' &mdash; ';
 		if ($remote_port_info['iif_id'] == 1)
 		{
-			echo formatPortIIFOIF ($remote_port_info);
+			echo stringForLabel (formatPortIIFOIF ($remote_port_info), 0);
 			echo '<input type=hidden name="remote_port_type" value="' . $remote_port_info['oif_id'] . '">';
 		}
 		else
 		{
-			echo '<label>' . $remote_port_info['iif_name'] . ' ';
+			echo '<label>' . stringForLabel ($remote_port_info['iif_name'], 0) . ' ';
 			printSelect (getExistingPortTypeOptions ($remote_port_info), array ('class' => 'porttype', 'name' => 'remote_port_type'), $type_remote);
 			echo '</label>';
 		}
@@ -513,7 +513,7 @@ function renderPopupIPv4Selector()
 	usort ($addresses, 'sortObjectAddressesAndNames');
 	foreach ($addresses as $address)
 		echo "<option value='{$address['ip']}' onclick='getElementById(\"ip\").value=\"{$address['ip']}\";'>" .
-		"{$address['object_name']} {$address['name']} {$address['ip']}</option>\n";
+		stringForOption ($address['object_name'], 0) . " " . stringForOption ($address['name'], 0) . " {$address['ip']}</option>\n";
 	echo '</select><br><br>';
 	echo "<input type=submit value='Proceed' onclick='".
 		"if (getElementById(\"ip\")!=\"\") {".

@@ -453,13 +453,13 @@ function renderObject8021QPorts ($object_id)
 		{
 			if (isset ($hl_port_id) && $hl_port_id == $port['id'])
 				$hl_port_name = $port['name'];
-			$socket = array ('interface' => formatPortIIFOIF ($port), 'link' => '&nbsp;');
+			$socket = array ('interface' => stringForLabel (formatPortIIFOIF ($port), 0), 'link' => '&nbsp;');
 			if ($port['remote_object_id'])
 				$socket['link'] = formatLoggedSpan ($port['last_log'], formatLinkedPort ($port));
 			elseif ($port['reservation_comment'] != '')
 				$socket['link'] = implode (' ', array(
 					formatLoggedSpan ($port['last_log'], 'Rsv:', 'strong underline'),
-					formatLoggedSpan ($port['last_log'], $port['reservation_comment'])
+					formatLoggedSpan ($port['last_log'], stringForLabel ($port['reservation_comment'], 0))
 				));
 			$sockets[$port['name']][] = $socket;
 		}
@@ -1116,7 +1116,7 @@ function renderObject8021QSync ($object_id)
 	if ($R !== NULL)
 		renderObject8021QSyncPreview ($object, $vswitch, $plan, $C, $R, $maxdecisions);
 	else
-		echo "<p class=row_error>gateway error: {$error}</p>";
+		echo '<p class=row_error>gateway error: ' . stringForLabel ($error, 0) . '</p>';
 	finishPortlet();
 	echo '</td></tr></table>';
 }
@@ -1555,7 +1555,7 @@ function renderVSTRulesEditor ($vst_id)
 	addJSText ("var new_vst_row = '" . addslashes (sprintf ($row_html, '', '', getSelect ($port_role_options, array ('name' => 'port_role'), 'anymode'), '', '')) . "';");
 	startSession();
 	foreach (array_fetch ($_SESSION, 'vst_edited', $vst['rules']) as $item)
-		printf ('<tr>' . $row_html . '</tr>', $item['rule_no'], htmlspecialchars ($item['port_pcre'], ENT_QUOTES),  getSelect ($port_role_options, array ('name' => 'port_role'), $item['port_role']), $item['wrt_vlans'], $item['description']);
+		printf ('<tr>' . $row_html . '</tr>', htmlspecialchars ($item['rule_no'], ENT_QUOTES), htmlspecialchars ($item['port_pcre'], ENT_QUOTES),  getSelect ($port_role_options, array ('name' => 'port_role'), $item['port_role']), htmlspecialchars ($item['wrt_vlans'], ENT_QUOTES), htmlspecialchars ($item['description'], ENT_QUOTES));
 	echo '</table>';
 	echo '<input type=hidden name="template_json">';
 	echo '<center>' . getImageHREF ('SAVE', 'Save template', TRUE) . '</center>';

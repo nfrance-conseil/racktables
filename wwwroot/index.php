@@ -120,7 +120,7 @@ try {
 		catch (RackTablesError $e)
 		{
 			ob_clean();
-			printSVGMessageBar ('RT error: ' . $e->getMessage(), array(), array ('fill' => 'red', 'stroke' => 'black'));
+			printSVGMessageBar (htmlspecialchars ('RT error: ' . $e->getMessage(), ENT_QUOTES, 'UTF-8'), array(), array ('fill' => 'red', 'stroke' => 'black'));
 		}
 		catch (Exception $e)
 		{
@@ -245,12 +245,12 @@ try {
 		catch (InvalidRequestArgException $e)
 		{
 			ob_clean();
-			showError ($e->getMessage());
+			showError (stringForLabel ($e->getMessage(), 0));
 		}
 		catch (RTDatabaseError $e)
 		{
 			ob_clean();
-			showError ('Database error: ' . $e->getMessage());
+			showError ('Database error: ' . stringForLabel ($e->getMessage(), 0));
 		}
 		catch (RTPermissionDenied $e)
 		{

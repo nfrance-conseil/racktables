@@ -31,7 +31,7 @@ function renderSLBEntityCell ($cell, $highlighted = FALSE)
 	switch ($cell['realm'])
 	{
 	case 'object':
-		echo "<tr><td><a class='$a_class' href='index.php?page=object&object_id={$cell['id']}'>{$cell['dname']}</a>";
+		echo "<tr><td><a class='$a_class' href='index.php?page=object&object_id={$cell['id']}'>" . stringForLabel ($cell['dname'], 0) . "</a>";
 		echo "</td></tr><tr><td>";
 		printImageHREF ('LB');
 		echo "</td></tr>";
@@ -41,8 +41,8 @@ function renderSLBEntityCell ($cell, $highlighted = FALSE)
 		printImageHREF ('VS');
 		echo "</td><td>";
 		echo "<a class='$a_class' href='index.php?page=ipv4vs&vs_id={$cell['id']}'>";
-		echo $cell['dname'] . "</a></td></tr><tr><td>";
-		echo $cell['name'] . '</td></tr>';
+		echo stringForLabel ($cell['dname'], 0) . "</a></td></tr><tr><td>";
+		echo stringForLabel ($cell['name'], 0) . '</td></tr>';
 		break;
 	case 'ipvs':
 		echo "<tr><td rowspan=3 width='5%'>";
@@ -504,12 +504,12 @@ function renderVirtualService ($vsid)
 	$vsinfo = spotEntity ('ipv4vs', $vsid);
 	echo '<table border=0 class=objectview cellspacing=0 cellpadding=0>';
 	if ($vsinfo['name'] != '')
-		echo "<tr><td colspan=2 align=center><h1>{$vsinfo['name']}</h1></td></tr>\n";
+		echo "<tr><td colspan=2 align=center><h1>" . stringForLabel ($vsinfo['name'], 0) . "</h1></td></tr>\n";
 	echo '<tr>';
 
 	echo '<td class=pcleft>';
 	$summary = array();
-	$summary['Name'] = $vsinfo['name'];
+	$summary['Name'] = stringForLabel ($vsinfo['name'], 0);
 	$summary['Protocol'] = $vsinfo['proto'];
 	$summary['Virtual IP address'] = mkA ($vsinfo['vip'], 'ipaddress', $vsinfo['vip']);
 	$summary['Virtual port'] = $vsinfo['vport'];
@@ -598,7 +598,7 @@ function renderEditVService ($vsid)
 	global $vs_proto;
 	printSelect ($vs_proto, array ('name' => 'proto'), $vsinfo['proto']);
 	echo "</td></tr>\n";
-	echo "<tr><th class=tdright>Name:</th><td class=tdleft><input type=text name=name value='{$vsinfo['name']}'></td></tr>\n";
+	echo "<tr><th class=tdright>Name:</th><td class=tdleft><input type=text name=name value='" . stringForTextInputValue ($vsinfo['name'], 0) . "'></td></tr>\n";
 	echo "<tr><th class=tdright>Tags:</th><td class=tdleft>";
 	printTagsPicker ();
 	echo "</td></tr>\n";

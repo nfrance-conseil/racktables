@@ -4732,7 +4732,7 @@ function doSwitchSNMPmining ($objectInfo, $device)
 	$sysObjectID = preg_replace ('/^.*( \.1\.3\.6\.1\.|enterprises\.|joint-iso-ccitt\.)([\.[:digit:]]+)$/', '\\2', $sysObjectID);
 	if (!isset ($known_switches[$sysObjectID]))
 	{
-		showError ("Unknown OID '{$sysObjectID}'");
+		showError (stringForLabel ("Unknown OID '{$sysObjectID}'", 0));
 		return;
 	}
 	$sysName = substr ($device->snmpget ('sysName.0'), strlen ('STRING: '));

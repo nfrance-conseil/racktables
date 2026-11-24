@@ -212,6 +212,11 @@ commands and the credentials in clear text, prefer ssh.
 
 The RackTables version is displayed only to users allowed to open the
 Configuration page.
+
+The text typed in the forms is now stored as is and escaped when displayed
+(it used to be stored HTML-escaped in some places). The upgrade decodes the
+names, labels, comments and user names stored that way; check the values that
+legitimately contained HTML entities such as "&amp;".
 ENDOFTEXT
 ,
 );
@@ -1410,6 +1415,45 @@ INSERT INTO `Config` (varname, varvalue, vartype, emptyok, is_hidden, is_userdef
   `last_failure` timestamp NOT NULL default CURRENT_TIMESTAMP,
   PRIMARY KEY (`ip`)
 ) ENGINE=InnoDB";
+			// The request values used to be HTML-escaped before some of them
+			// were stored, the data is now stored as typed and escaped on output.
+			// IGNORE leaves a value as is if the decoded one is a duplicate.
+			$escaped_columns = array
+			(
+				'Object' => array ('name', 'label', 'asset_no', 'comment'),
+				'ObjectHistory' => array ('name', 'label', 'asset_no', 'comment', 'user_name'),
+				'Port' => array ('name', 'label'),
+				'Link' => array ('cable'),
+				'IPv4NAT' => array ('description'),
+				'IPv4Address' => array ('name', 'comment'),
+				'IPv6Address' => array ('name', 'comment'),
+				'IPv4Allocation' => array ('name'),
+				'IPv6Allocation' => array ('name'),
+				'IPv4VS' => array ('name'),
+				'UserAccount' => array ('user_name', 'user_realname'),
+				'Config' => array ('varvalue'),
+				'UserConfig' => array ('varvalue', 'user'),
+				'Script' => array ('script_text'),
+				'ObjectLog' => array ('user'),
+				'MountOperation' => array ('user_name'),
+				'IPv4Log' => array ('user'),
+				'IPv6Log' => array ('user'),
+				'PortLog' => array ('user'),
+				'TagStorage' => array ('user'),
+				'VLANSwitchTemplate' => array ('saved_by'),
+				'PatchCableHeapLog' => array ('user'),
+				'CachedPAV' => array ('port_name'),
+				'CachedPNV' => array ('port_name'),
+				'CachedPVM' => array ('port_name'),
+				'PortAllowedVLAN' => array ('port_name'),
+				'PortNativeVLAN' => array ('port_name'),
+				'PortVLANMode' => array ('port_name'),
+			);
+			foreach ($escaped_columns as $table => $columns)
+				foreach ($columns as $column)
+					$query[] = "UPDATE IGNORE `{$table}` SET `{$column}` = " .
+						"REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(`{$column}`, '&lt;', '<'), '&gt;', '>'), '&quot;', '\"'), '&#039;', \"'\"), '&amp;', '&') " .
+						"WHERE `{$column}` LIKE '%&%;%'";
 			$query[] = "UPDATE Config SET varvalue = '0.22.1' WHERE varname = 'DB_VERSION'";
 			break;
 		case 'dictionary':

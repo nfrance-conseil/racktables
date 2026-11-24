@@ -114,9 +114,10 @@ class RackTablesError extends Exception
 			echo '<hr>' . $helpdesk_banner;
 		echo '</body></html>';
 	}
+	// The exception messages are text, escaped on output.
 	protected static function formatString ($string)
 	{
-		return isCLIMode() ? $string : stringForLabel ($string, 80);
+		return mb_strlen ($string) <= 80 ? $string : mb_substr ($string, 0, 79) . '...';
 	}
 	public function dispatch()
 	{
@@ -128,9 +129,9 @@ class RackTablesError extends Exception
 		);
 		$msgbody = array
 		(
-			self::MISCONFIGURED => '<h2>Configuration error</h2><br>' . $this->message,
-			self::INTERNAL => '<h2>Internal error</h2><br>' . $this->message,
-			self::DB_WRITE_FAILED => '<h2>Database write failed</h2><br>' . $this->message,
+			self::MISCONFIGURED => '<h2>Configuration error</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'),
+			self::INTERNAL => '<h2>Internal error</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'),
+			self::DB_WRITE_FAILED => '<h2>Database write failed</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'),
 		);
 		switch ($this->code)
 		{
@@ -164,7 +165,7 @@ class EntityNotFoundException extends RackTablesError
 			printGenericException ($this);
 			return;
 		}
-		showError ($this->message);
+		showError (htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'));
 		redirectUser (buildRedirectURL ('index', 'default'));
 	}
 }
@@ -223,7 +224,7 @@ class InvalidRequestArgException extends InvalidArgException
 {
 	public function dispatch()
 	{
-		RackTablesError::genHTMLPage ('Assertion failed', '<h2>Assertion failed</h2><br>' . $this->message);
+		RackTablesError::genHTMLPage ('Assertion failed', '<h2>Assertion failed</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'));
 	}
 }
 
@@ -233,7 +234,7 @@ class RTDatabaseError extends RackTablesError
 {
 	public function dispatch()
 	{
-		RackTablesError::genHTMLPage ('Database soft error', '<h2>Database soft error</h2><br>' . $this->message);
+		RackTablesError::genHTMLPage ('Database soft error', '<h2>Database soft error</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'));
 	}
 }
 
@@ -246,7 +247,7 @@ class RTDBTableAccessDenied extends RTDatabaseError
 {
 	public function dispatch()
 	{
-		RackTablesError::genHTMLPage ('Database table access denied', '<h2>Database table access denied</h2><br>' . $this->message);
+		RackTablesError::genHTMLPage ('Database table access denied', '<h2>Database table access denied</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'));
 	}
 };
 
@@ -255,7 +256,7 @@ class RTGatewayError extends RackTablesError
 {
 	public function dispatch()
 	{
-		RackTablesError::genHTMLPage ('Gateway error', '<h2>Gateway error</h2><br>' . $this->message);
+		RackTablesError::genHTMLPage ('Gateway error', '<h2>Gateway error</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'));
 	}
 }
 
@@ -290,8 +291,8 @@ class RTPermissionDenied extends RackTablesError
 		echo serializeTags ($impl_tags) . "&nbsp;</td></tr>\n";
 		echo '<tr><th width="50%" class=tagchain>Automatic tags:</th><td class=tagchain>';
 		echo serializeTags ($auto_tags) . "&nbsp;</td></tr>\n";
-		echo "<tr><th width='50%' class=tdright>Requested page:</th><td class=tdleft>{$pageno}</td></tr>\n";
-		echo "<tr><th width='50%' class=tdright>Requested tab:</th><td class=tdleft>{$tabno}</td></tr>\n";
+		echo "<tr><th width='50%' class=tdright>Requested page:</th><td class=tdleft>" . htmlspecialchars ((string) $pageno, ENT_QUOTES, 'UTF-8') . "</td></tr>\n";
+		echo "<tr><th width='50%' class=tdright>Requested tab:</th><td class=tdleft>" . htmlspecialchars ((string) $tabno, ENT_QUOTES, 'UTF-8') . "</td></tr>\n";
 		echo "<tr><td colspan=2 align=center>Click <a href='index.php?logout'>here</a> to logout.</td></tr>\n";
 		echo "</table>\n";
 		echo '</body></html>';
@@ -309,7 +310,7 @@ class RackCodeError extends RackTablesError
 	}
 	public function dispatch()
 	{
-		parent::genHTMLPage ('RackCode error', '<h2>RackCode error on line ' . $this->lineno . '</h2><br>' . $this->message);
+		parent::genHTMLPage ('RackCode error', '<h2>RackCode error on line ' . htmlspecialchars ($this->lineno, ENT_QUOTES, 'UTF-8') . '</h2><br>' . htmlspecialchars ($this->message, ENT_QUOTES, 'UTF-8'));
 	}
 }
 

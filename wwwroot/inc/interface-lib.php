@@ -510,19 +510,16 @@ function transformRequestData()
 	global $sic;
 	$seen_keys = array();
 
-	// Escape all globals before using and keep a copy of the original values.
+	// The request values are kept as sent (the data is stored as is and
+	// escaped on output). $sic is the historical name of the same array.
 	$sic = array();
 	// walk through merged GET and POST instead of REQUEST array because it
 	// can contain cookies with data that could not be decoded from UTF-8
 	foreach (($_POST + $_GET) as $key => $value)
 	{
-		if (is_array ($value))
-			$_REQUEST[$key] = $value;
-		else
-		{
+		if (! is_array ($value))
 			$value = dos2unix ($value);
-			$_REQUEST[$key] = htmlspecialchars ($value, ENT_QUOTES, 'UTF-8');
-		}
+		$_REQUEST[$key] = $value;
 		$sic[$key] = $value;
 		$seen_keys[$key] = 1;
 	}
@@ -531,11 +528,6 @@ function transformRequestData()
 	foreach (array_keys ($_REQUEST) as $key)
 		if (! isset ($seen_keys[$key]))
 			unset ($_REQUEST[$key]);
-
-	if (isset ($_SERVER['PHP_AUTH_USER']))
-		$_SERVER['PHP_AUTH_USER'] = htmlspecialchars ($_SERVER['PHP_AUTH_USER'], ENT_QUOTES, 'UTF-8');
-	if (isset ($_SERVER['REMOTE_USER']))
-		$_SERVER['REMOTE_USER'] = htmlspecialchars ($_SERVER['REMOTE_USER'], ENT_QUOTES, 'UTF-8');
 }
 
 // Return whether value passed is likely to be a URI.
@@ -907,7 +899,8 @@ function serializeTags ($chain, $baseurl = '')
 			$tag = 'a';
 			$href = "href='{$baseurl}cft[]={$taginfo['id']}'";
 		}
-		$tmp[] = "<$tag $href $title $class>" . $taginfo['tag'] . "</$tag>";
+		// Automatic tags include the user name.
+		$tmp[] = "<$tag $href $title $class>" . htmlspecialchars ($taginfo['tag'], ENT_QUOTES, 'UTF-8') . "</$tag>";
 	}
 	return implode (', ', $tmp);
 }
@@ -1336,7 +1329,7 @@ function makeIPAllocLink ($ip_bin, $alloc, $display_ifname = FALSE)
 	return
 		'<a href="' . makeHref (array ('page' => 'object', 'tab' => 'default', 'object_id' => $alloc['object_id'], 'hl_ip' => ip_format ($ip_bin))) . '"' .
 		' title="' . htmlspecialchars ($title, ENT_QUOTES) . '"' .
-		">" . ($display_ifname ? $alloc['name'] . '@' : '') . $object_name . "</a>";
+		">" . stringForLabel (($display_ifname ? $alloc['name'] . '@' : '') . $object_name, 0) . "</a>";
 }
 
 function makeHtmlTag ($tagname, $attributes = array())

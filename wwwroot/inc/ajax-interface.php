@@ -26,11 +26,11 @@ function formatPortLinkHints ($object_id)
 	foreach ($linkStatus as $portname => $link_info)
 	{
 		$hidden_lines = array();
-		$hidden_lines[] = $portname . ': ' . $link_info['status'];
+		$hidden_lines[] = htmlspecialchars ($portname . ': ' . $link_info['status'], ENT_QUOTES, 'UTF-8');
 		if (isset ($link_info['speed']))
-			$hidden_lines[] = 'Speed: ' . $link_info['speed'];
+			$hidden_lines[] = 'Speed: ' . htmlspecialchars ($link_info['speed'], ENT_QUOTES, 'UTF-8');
 		if (isset ($link_info['duplex']))
-			$hidden_lines[] = 'Duplex: ' . $link_info['duplex'];
+			$hidden_lines[] = 'Duplex: ' . htmlspecialchars ($link_info['duplex'], ENT_QUOTES, 'UTF-8');
 		if (count ($hidden_lines))
 			$result[$portname]['popup'] = implode ('<br>', $hidden_lines);
 		$visible_part = getImageHREF (array_fetch ($statusmap, $link_info['status'], '16x16t'));
@@ -68,7 +68,7 @@ function formatPortMacHints ($object_id)
 		{
 			$hidden_part = '<table width="100%"><tr><th>MAC<th>VID</tr>';
 			foreach ($list as $mac)
-				$hidden_part .= '<tr><td>' . $mac['mac'] . '<td>' . $mac['vid'] . '</tr>';
+				$hidden_part .= '<tr><td>' . htmlspecialchars ($mac['mac'], ENT_QUOTES, 'UTF-8') . '<td>' . htmlspecialchars ($mac['vid'], ENT_QUOTES, 'UTF-8') . '</tr>';
 			$result[$portname]['popup'] = $hidden_part;
 		}
 	}
@@ -86,7 +86,7 @@ function formatPortConfigHints ($object_id, $R = NULL)
 	{
 		$hidden_part = '';
 		foreach ($portconfig as $line)
-			$hidden_part .= '<span class="'. $line['type'] . '">' . htmlentities ($line['line']) . '</span><br />';
+			$hidden_part .= '<span class="' . htmlspecialchars ($line['type'], ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars ($line['line'], ENT_QUOTES, 'UTF-8') . '</span><br />';
 		$result[$portname]['popup'] = $hidden_part;
 	}
 	return $result;
@@ -139,7 +139,7 @@ function getLocationSelectAJAX()
 		echo "<option value={$location['id']} ";
 		if ($location['id'] == $selected_id)
 			echo 'selected ';
-		echo "style='font-weight: bold'>{$location['name']}</option>";
+		echo "style='font-weight: bold'>" . stringForOption ($location['name'], 0) . "</option>";
 		if ($location['kidc'] > 0)
 			printLocationChildrenSelectOptions ($location, $selected_id, $current_location_id);
 	}
@@ -212,7 +212,7 @@ function getPortInfoAJAX()
 	$object_id = genericAssertion ('object_id', 'natural');
 	fixContext (spotEntity ('object', $object_id));
 	assertPermission ('object', 'liveports', $opmap[$_REQUEST['ac']]);
-	echo json_encode ($funcmap[$_REQUEST['ac']] ($object_id));
+	echo json_encode ($funcmap[$_REQUEST['ac']] ($object_id), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }
 
 function updatePortRsvAJAX()
@@ -232,9 +232,7 @@ function updatePortRsvAJAX()
 
 function updateIPNameAJAX()
 {
-	// The IP address name and comment are stored HTML-escaped, as the form handlers do.
-	genericAssertion ('text', 'string0');
-	$text = $_REQUEST['text'];
+	$text = genericAssertion ('text', 'string0');
 	$ip_bin = assertIPArg ('id');
 	$addr = getIPAddress ($ip_bin);
 	if (! empty ($addr['allocs']) && empty ($addr['name']))
@@ -251,9 +249,7 @@ function updateIPNameAJAX()
 
 function updateIPCommentAJAX()
 {
-	// The IP address name and comment are stored HTML-escaped, as the form handlers do.
-	genericAssertion ('text', 'string0');
-	$text = $_REQUEST['text'];
+	$text = genericAssertion ('text', 'string0');
 	$ip_bin = assertIPArg ('id');
 	$addr = getIPAddress ($ip_bin);
 	$net = spotNetworkByIP ($ip_bin);
@@ -361,5 +357,5 @@ function getAutocompleteListAJAX()
 	if (count ($rows) > 100 )
 		$rows[] = array ('label' => '...', 'value' => '');
 
-	echo json_encode ($rows);
+	echo json_encode ($rows, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }

@@ -2049,7 +2049,7 @@ function getCellFilter ()
 		'text' => '',
 		'extratext' => '',
 		'expression' => array(),
-		'urlextra' => '', // Just put text here and let makeHref call urlencode().
+		'urlextra' => '', // URL-encoded
 		'is_empty' => TRUE,
 	);
 	switch (TRUE)
@@ -2064,8 +2064,8 @@ function getCellFilter ()
 		break;
 	default:
 		showWarning ('Invalid and/or switch value in submitted form');
-		session_commit();
-		return NULL;
+		$andor = getConfigVar ('FILTER_DEFAULT_ANDOR');
+		break;
 	}
 	// Both tags and predicates that don't exist, should be
 	// handled somehow. Discard them silently for now.
@@ -2104,7 +2104,7 @@ function getCellFilter ()
 					$ret['text'] .= " $andor ";
 				}
 				$ret['text'] .= $text;
-				$ret['urlextra'] .= '&' . $param . '[]=' . $req_key;
+				$ret['urlextra'] .= '&' . $param . '[]=' . urlencode ($req_key);
 			}
 		}
 	// Extra text comes from TEXTAREA and is easily screwed by standard escaping function.
@@ -2112,7 +2112,7 @@ function getCellFilter ()
 	{
 		$_SESSION[$pageno]['filter']['cfe'] = $sic['cfe'];
 		$ret['extratext'] = trim ($sic['cfe']);
-		$ret['urlextra'] .= '&cfe=' . $ret['extratext'];
+		$ret['urlextra'] .= '&cfe=' . urlencode ($ret['extratext']);
 	}
 	$finaltext = array();
 	if ($ret['text'] != '')
@@ -2134,7 +2134,7 @@ function getCellFilter ()
 	if (! $andor_used)
 		$ret['andor'] = getConfigVar ('FILTER_DEFAULT_ANDOR');
 	else
-		$ret['urlextra'] .= '&andor=' . $ret['andor'];
+		$ret['urlextra'] .= '&andor=' . urlencode ($ret['andor']);
 	session_commit();
 	return $ret;
 }
@@ -3285,7 +3285,7 @@ function eval_expression ($expr, $tagchain, $silent = FALSE)
 			if (!isset ($pTable[$pname]))
 			{
 				if (!$silent)
-					showWarning ("Undefined predicate [{$pname}]");
+					showWarning ('Undefined predicate [' . stringForLabel ($pname, 0) . ']');
 				return NULL;
 			}
 			return $self ($pTable[$pname], $tagchain, $silent);
@@ -4948,9 +4948,9 @@ function formatPortLink($host_id, $hostname, $port_id, $portname, $a_class = '')
 
 	$text_items = array();
 	if (isset ($hostname))
-		$text_items[] = $hostname;
+		$text_items[] = htmlspecialchars ($hostname, ENT_QUOTES, 'UTF-8');
 	if (isset ($portname))
-		$text_items[] = $portname;
+		$text_items[] = htmlspecialchars ($portname, ENT_QUOTES, 'UTF-8');
 
 	return "<a $additional href=\"$href\">" . implode(' ', $text_items) . '</a>';
 }
@@ -5842,7 +5842,7 @@ function apply8021qChangeRequest ($switch_id, $changes, $verbose = TRUE, $mutex_
 	catch (Exception $e)
 	{
 		$dbxlink->rollBack();
-		showError (sprintf ("Failed to update switchports: %s", $e->getMessage()));
+		showError (sprintf ("Failed to update switchports: %s", stringForLabel ($e->getMessage(), 0)));
 		return 0;
 	}
 	$nsaved_downlinks = initiateUplinksReverb ($vswitch['object_id'], $new_uplinks);
@@ -5859,7 +5859,7 @@ function apply8021qChangeRequest ($switch_id, $changes, $verbose = TRUE, $mutex_
 		}
 		catch (Exception $e)
 		{
-			showError (sprintf ("Failed to deploy changes to switch: %s", $e->getMessage()));
+			showError (sprintf ("Failed to deploy changes to switch: %s", stringForLabel ($e->getMessage(), 0)));
 		}
 	}
 	// report number of changed ports
@@ -6295,10 +6295,10 @@ function mkCellA ($cell, $title = NULL)
 			case 'ipv4vs':
 			case 'ipv4net':
 			case 'ipv6net':
-				$title = formatEntityName ($cell);
+				$title = stringForLabel (formatEntityName ($cell), 0);
 				break;
 			default:
-				$title = formatRealmName ($cell['realm']) . ' ' . formatEntityName ($cell);
+				$title = formatRealmName ($cell['realm']) . ' ' . stringForLabel (formatEntityName ($cell), 0);
 				break;
 		}
 	return mkA ($title, $cell_page, $cell_key);
@@ -6339,6 +6339,7 @@ function formatEntityList ($list)
 	return $ret;
 }
 
+// Returns the name as text, to escape for HTML output.
 function formatEntityName ($entity)
 {
 	$ret = '';
@@ -6360,9 +6361,6 @@ function formatEntityName ($entity)
 		case 'ipvs':
 		case 'ipv4rspool':
 		case 'file':
-			// stored as is, unlike the other names
-			$ret = htmlspecialchars ((string) $entity['name'], ENT_QUOTES, 'UTF-8');
-			break;
 		case 'rack':
 		case 'row':
 		case 'location':
@@ -6617,7 +6615,7 @@ function printLocationChildrenSelectOptions ($location, $parent_id, $location_id
 		echo "<option value={$subLocation['id']}";
 		if ($subLocation['id'] == $parent_id)
 			echo ' selected';
-		echo '>' . str_repeat ('&raquo; ', $level) . "{$subLocation['name']}</option>\n";
+		echo '>' . str_repeat ('&raquo; ', $level) . stringForOption ($subLocation['name'], 0) . "</option>\n";
 		if ($subLocation['kidc'] > 0)
 			$self ($subLocation, $parent_id, $location_id, $level);
 	}
@@ -6651,7 +6649,7 @@ function getLocationTrail ($location_id, $link = TRUE, $spacer = ' : ')
 			break;
 		}
 		$name = $location_tree[$id]['name'];
-		array_unshift ($names, $link ? mkA ($name, 'location', $id) : $name);
+		array_unshift ($names, $link ? mkA (stringForLabel ($name, 0), 'location', $id) : $name);
 		$id = $location_tree[$id]['parent_id'];
 		$locationIdx++;
 	}
@@ -6751,7 +6749,7 @@ function formatPatchCableHeapAsPlainText ($heap)
 	$text = "{$heap['amount']} pcs: [{$heap['end1_connector']}] {$heap['pctype']} [{$heap['end2_connector']}]";
 	if ($heap['description'] != '')
 		$text .=  " ({$heap['description']})";
-	return stringForOption ($text, 512);
+	return mb_substr ($text, 0, 512);
 }
 
 // takes a list of structures and the field name in those structures.
